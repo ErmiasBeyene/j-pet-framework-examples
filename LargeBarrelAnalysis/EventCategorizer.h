@@ -1,5 +1,5 @@
 /**
- *  @copyright Copyright 2018 The J-PET Framework Authors. All rights reserved.
+ *  @copyright Copyright 2019 The J-PET Framework Authors. All rights reserved.
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may find a copy of the License in the LICENCE file.
@@ -16,47 +16,57 @@
 #ifndef EVENTCATEGORIZER_H
 #define EVENTCATEGORIZER_H
 
+#include <JPetCommonTools/JPetCommonTools.h>
 #include <JPetUserTask/JPetUserTask.h>
-#include "EventCategorizerTools.h"
 #include <JPetEvent/JPetEvent.h>
 #include <JPetHit/JPetHit.h>
 #include <vector>
 #include <map>
 
+using namespace std;
 class JPetWriter;
 
 #ifdef __CINT__
-#	define override
+#define override
 #endif
 
-/**
- * @brief User Task categorizing Events
- *
- * Task attempts to add types of events to each event. Each category/type
- * has separate method for checking, if current event fulfills set of conditions.
- * These methods are defined in tools class. More than one type can be added to an event.
- * Set of controll histograms are created, unless the user decides not to produce them.
- */
+static const double kLightVelocity_cm_ns = 29.9792458;
+
 class EventCategorizer : public JPetUserTask{
 public:
 	EventCategorizer(const char * name);
-	virtual ~EventCategorizer();
+	virtual ~EventCategorizer(){}
 	virtual bool init() override;
 	virtual bool exec() override;
 	virtual bool terminate() override;
 
-protected:
-	const std::string kBack2BackSlotThetaDiffParamKey = "Back2Back_Categorizer_SlotThetaDiff_float";
-	const std::string kScatterTOFTimeDiffParamKey = "Scatter_Categorizer_TOF_TimeDiff_float";
-	const std::string kDeexTOTCutMinParamKey = "Deex_Categorizer_TOT_Cut_Min_float";
-	const std::string kDeexTOTCutMaxParamKey = "Deex_Categorizer_TOT_Cut_Max_float";
-	const std::string kSaveControlHistosParamKey = "Save_Control_Histograms_bool";
-	void saveEvents(const std::vector<JPetEvent>& event);
-	double fScatterTOFTimeDiff = 2000.0;
-	double fB2BSlotThetaDiff = 3.0;
-	double fDeexTOTCutMin = 30000.0;
-	double fDeexTOTCutMax = 50000.0;
+private:
+	// Counters
+	int fEventNumber = 0;
+	int fTotal3HitEvents = 0;
 	bool fSaveControlHistos = true;
 	void initialiseHistograms();
+  void saveEvents(const std::vector<JPetEvent>& event);
+	void deexcitationSelection(
+		const std::vector<double>& angles, const JPetHit& firstHit2,
+  	const JPetHit& secondHit2, const JPetHit& thirdHit2
+	);
+	void annihilationSelection(
+		const std::vector<double>& angles, const JPetHit& firstHit2,
+  	const JPetHit& secondHit2, const JPetHit& thirdHit2
+	);
+	std::vector<JPetHit> reorderHits(std::vector<JPetHit> hits);
+  std::vector<JPetEvent> analyseThreeHitEvent(const JPetEvent *event);
+	std::vector<double_t> scatterAnalysis(JPetHit orig, JPetHit scatter,JPetHit ,double);
+	double calcAngle(JPetHit orig, JPetHit scatter);   //sks
+	TVector3 recoPos2Hit(const JPetHit hit1, const JPetHit hit2 );
+	double calculateSumOfTOTs(JPetHit hit);
+	double calculateSumOfTOTsCalib(JPetHit hit,int ThrI, int ThrF);
+	double calculateSumOfTOTsForSignal(JPetHit hit, char label, int thrI, int thrF);
+	void writeSelected(JPetHit orig, JPetHit scatter, std::vector<double_t> values,
+		bool isScatter, double,double, int ScinID
+	);
+
 };
+
 #endif /* !EVENTCATEGORIZER_H */
