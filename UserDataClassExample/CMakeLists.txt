@@ -54,7 +54,7 @@ set(HEADERS ${use_modules_from}/EventCategorizer.h
             ${use_modules_from}/ToTConverter.h
             ${CMAKE_CURRENT_SOURCE_DIR}/LORFinder.h
             ${CMAKE_CURRENT_SOURCE_DIR}/JPetLORevent.h)
-          
+
 set(SOURCES ${use_modules_from}/EventCategorizer.cpp
             ${use_modules_from}/EventCategorizerTools.cpp
             ${use_modules_from}/EventFinder.cpp
@@ -116,4 +116,3 @@ add_custom_target(clean_data_${projectName}
 ################################################################################
 ## Copy the example auxiliary files
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/${AUXILIARY_FILES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/)
-
