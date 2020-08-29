@@ -47,6 +47,7 @@ map<int, vector<JPetMatrixSignal>> HitFinderTools::getSignalsByScin(
   const unsigned int nSignals = timeWindow->getNumberOfEvents();
   for (unsigned int i = 0; i < nSignals; i++) {
     auto mtxSig = dynamic_cast<const JPetMatrixSignal&>(timeWindow->operator[](i));
+    if(mtxSig.getPM().getDesc()=="wls") { continue; }
     int scinID = mtxSig.getPM().getScin().getID();
     auto search = signalScinMap.find(scinID);
     if (search == signalScinMap.end()) {

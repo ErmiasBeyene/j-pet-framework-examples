@@ -21,6 +21,7 @@
 #include <boost/property_tree/ptree.hpp>
 
 using namespace jpet_options_tools;
+using namespace std;
 
 SignalTransformer::SignalTransformer(const char* name): JPetUserTask(name) {}
 
@@ -81,16 +82,49 @@ bool SignalTransformer::exec()
   if(auto timeWindow = dynamic_cast<const JPetTimeWindow* const>(fEvent)) {
 
     // Distribute Raw Signals per Matrices
-    auto rawSigMtxMap = SignalTransformerTools::getRawSigMtxMap(timeWindow);
+    auto rawSigMtxWLSMap = SignalTransformerTools::getRawSigMtxWLSMap(timeWindow);
 
     // Merging max. 4 Raw Signals into a MatrixSignal
     auto mergedSignals = SignalTransformerTools::mergeSignalsAllSiPMs(
-      rawSigMtxMap, fMergingTime, getStatistics(), true
+      rawSigMtxWLSMap.first, fMergingTime
     );
 
-    // Saving method invocation
     if(mergedSignals.size()>0){
       saveMatrixSignals(mergedSignals);
+    }
+
+    for(auto wlsEle : getParamBank().getWLSs()){
+      auto wlsID = wlsEle.second->getID();
+      auto pmIDs = wlsEle.second->getPMIDs();
+      vector<JPetRawSignal> wlsSignals;
+      for(auto& wlsEle : rawSigMtxWLSMap.second){
+        for(int i=0; i<pmIDs.size(); i++){
+          if(wlsEle.first == pmIDs.at(i)) {
+             wlsSignals.insert(wlsSignals.end(), wlsEle.second.begin(), wlsEle.second.end());
+          }
+        }
+      }
+      auto matchedWLSSig = SignalTransformerTools::mergeRawSignalsOnSide(wlsSignals, fMergingTime);
+
+      if(matchedWLSSig.size()>0){
+        saveMatrixSignals(matchedWLSSig);
+      }
+
+      if(fSaveControlHistos){
+        for(auto mtxSig : matchedWLSSig){
+          double totSum = 0.0;
+          for(auto sigEle : mtxSig.getRawSignals()){
+            auto pmID = sigEle.second.getPM().getID();
+            auto leads = sigEle.second.getPoints(JPetSigCh::Leading, JPetRawSignal::ByThrValue);
+            auto trails = sigEle.second.getPoints(JPetSigCh::Trailing, JPetRawSignal::ByThrValue);
+            double tot = trails.at(0).getTime()-leads.at(0).getTime();
+            totSum += tot;
+            getStatistics().getHisto1D(Form("wls_%d_tot_sipm_%d", wlsID, pmID))->Fill(tot);
+          }
+          getStatistics().getHisto1D(Form("wls_%d", wlsID))->Fill(totSum);
+        }
+
+      }
     }
 
   } else { return false; }
@@ -152,44 +186,46 @@ void SignalTransformer::saveMatrixSignals(const std::vector<JPetMatrixSignal>& m
   if(fSaveControlHistos){
     getStatistics().getHisto1D("mtxsig_tslot")->Fill(mtxSigVec.size());
   }
+
   for (auto& mtxSig : mtxSigVec) {
     fOutputEvents->add<JPetMatrixSignal>(mtxSig);
 
     if(fSaveControlHistos){
-      auto scinID = mtxSig.getPM().getScin().getID();
-      if(scinID<fMinScinID || scinID>fMaxScinID) { continue; }
-      getStatistics().getHisto1D("mtxsig_multi")->Fill(mtxSig.getRawSignals().size());
-      if(mtxSig.getPM().getSide()==JPetPM::SideA){
-        getStatistics().getHisto1D("mtxsig_per_scin_sideA")->Fill(scinID);
-      } else if(mtxSig.getPM().getSide()==JPetPM::SideB){
-        getStatistics().getHisto1D("mtxsig_per_scin_sideB")->Fill(scinID);
-      }
-      auto rawSigVec = mtxSig.getRawSignals();
-      if(rawSigVec.size() == 4) {
-        auto side = rawSigVec.at(1).getPM().getSide();
-        auto t1 = SignalTransformerTools::getRawSigBaseTime(rawSigVec.at(1));
-        auto t2 = SignalTransformerTools::getRawSigBaseTime(rawSigVec.at(2));
-        auto t3 = SignalTransformerTools::getRawSigBaseTime(rawSigVec.at(3));
-        auto t4 = SignalTransformerTools::getRawSigBaseTime(rawSigVec.at(4));
+      if(mtxSig.getPM().getDesc()=="scin"){
+        auto scinID = mtxSig.getPM().getScin().getID();
+        if(scinID<fMinScinID || scinID>fMaxScinID) { continue; }
+        getStatistics().getHisto1D("mtxsig_multi")->Fill(mtxSig.getRawSignals().size());
+        if(mtxSig.getPM().getSide()==JPetPM::SideA){
+          getStatistics().getHisto1D("mtxsig_per_scin_sideA")->Fill(scinID);
+        } else if(mtxSig.getPM().getSide()==JPetPM::SideB){
+          getStatistics().getHisto1D("mtxsig_per_scin_sideB")->Fill(scinID);
+        }
+        auto rawSigVec = mtxSig.getRawSignals();
+        if(rawSigVec.size() == 4) {
+          auto side = rawSigVec.at(1).getPM().getSide();
+          auto t1 = SignalTransformerTools::getRawSigBaseTime(rawSigVec.at(1));
+          auto t2 = SignalTransformerTools::getRawSigBaseTime(rawSigVec.at(2));
+          auto t3 = SignalTransformerTools::getRawSigBaseTime(rawSigVec.at(3));
+          auto t4 = SignalTransformerTools::getRawSigBaseTime(rawSigVec.at(4));
 
-        if(rawSigVec.at(2).getPM().getID()>fMinPMID && rawSigVec.at(2).getPM().getID()<fMaxPMID){
-          getStatistics().getHisto1D(Form("offset_sipm_%d", rawSigVec.at(2).getPM().getID()))->Fill(t2-t1);
-        }
-        if(rawSigVec.at(3).getPM().getID()>fMinPMID && rawSigVec.at(3).getPM().getID()<fMaxPMID){
-          getStatistics().getHisto1D(Form("offset_sipm_%d", rawSigVec.at(3).getPM().getID()))->Fill(t3-t1);
-        }
-        if(rawSigVec.at(4).getPM().getID()>fMinPMID && rawSigVec.at(4).getPM().getID()<fMaxPMID){
-          getStatistics().getHisto1D(Form("offset_sipm_%d", rawSigVec.at(4).getPM().getID()))->Fill(t4-t1);
-        }
-
-        if(side==JPetPM::SideA) {
-          getStatistics().getHisto1D(Form("tdiff_%d_A_%d_%d", scinID, 2, 1))->Fill(t2-t1);
-          getStatistics().getHisto1D(Form("tdiff_%d_A_%d_%d", scinID, 3, 1))->Fill(t3-t1);
-          getStatistics().getHisto1D(Form("tdiff_%d_A_%d_%d", scinID, 4, 1))->Fill(t4-t1);
-        } else if(side==JPetPM::SideB){
-          getStatistics().getHisto1D(Form("tdiff_%d_B_%d_%d", scinID, 2, 1))->Fill(t2-t1);
-          getStatistics().getHisto1D(Form("tdiff_%d_B_%d_%d", scinID, 3, 1))->Fill(t3-t1);
-          getStatistics().getHisto1D(Form("tdiff_%d_B_%d_%d", scinID, 4, 1))->Fill(t4-t1);
+          if(side==JPetPM::SideA) {
+            getStatistics().getHisto1D(Form("tdiff_%d_A_%d_%d", scinID, 2, 1))->Fill(t2-t1);
+            getStatistics().getHisto1D(Form("tdiff_%d_A_%d_%d", scinID, 3, 1))->Fill(t3-t1);
+            getStatistics().getHisto1D(Form("tdiff_%d_A_%d_%d", scinID, 4, 1))->Fill(t4-t1);
+          } else if(side==JPetPM::SideB){
+            getStatistics().getHisto1D(Form("tdiff_%d_B_%d_%d", scinID, 2, 1))->Fill(t2-t1);
+            getStatistics().getHisto1D(Form("tdiff_%d_B_%d_%d", scinID, 3, 1))->Fill(t3-t1);
+            getStatistics().getHisto1D(Form("tdiff_%d_B_%d_%d", scinID, 4, 1))->Fill(t4-t1);
+          }
+          // if(rawSigVec.at(2).getPM().getID()>fMinPMID && rawSigVec.at(2).getPM().getID()<fMaxPMID){
+          //   getStatistics().getHisto1D(Form("offset_sipm_%d", rawSigVec.at(2).getPM().getID()))->Fill(t2-t1);
+          // }
+          // if(rawSigVec.at(3).getPM().getID()>fMinPMID && rawSigVec.at(3).getPM().getID()<fMaxPMID){
+          //   getStatistics().getHisto1D(Form("offset_sipm_%d", rawSigVec.at(3).getPM().getID()))->Fill(t3-t1);
+          // }
+          // if(rawSigVec.at(4).getPM().getID()>fMinPMID && rawSigVec.at(4).getPM().getID()<fMaxPMID){
+          //   getStatistics().getHisto1D(Form("offset_sipm_%d", rawSigVec.at(4).getPM().getID()))->Fill(t4-t1);
+          // }
         }
       }
     }
@@ -200,7 +236,7 @@ void SignalTransformer::initialiseHistograms()
 {
   // MatrixSignal multiplicity
   getStatistics().createHistogram(new TH1F(
-    "mtxsig_multi", "Multiplicity of matched MatrixSignals", 5, 0.5, 5.5
+    "mtxsig_multi", "Multiplicity of MatrixSignals matched in scintillators", 5, 0.5, 5.5
   ));
   getStatistics().getHisto1D("mtxsig_multi")->GetXaxis()->SetTitle("Number of Raw Signals in Matrix Signal");
   getStatistics().getHisto1D("mtxsig_multi")->GetYaxis()->SetTitle("Number of Matrix Signals");
@@ -252,13 +288,38 @@ void SignalTransformer::initialiseHistograms()
   }
 
   // Same offsets but with SiPM ID in the name
-  for(int pmID=fMinPMID; pmID<=fMaxPMID; pmID++){
+  // for(int pmID=fMinPMID; pmID<=fMaxPMID; pmID++){
+  //   getStatistics().createHistogram(new TH1F(
+  //     Form("offset_sipm_%d", pmID), Form("Offset for SiPM %d", pmID),
+  //     200, -1.1*fMergingTime, 1.1*fMergingTime
+  //   ));
+  //   getStatistics().getHisto1D(Form("offset_sipm_%d", pmID))->GetXaxis()->SetTitle("Time difference [ps]");
+  //   getStatistics().getHisto1D(Form("offset_sipm_%d", pmID))->GetYaxis()->SetTitle("Number of Raw Signal pairs");
+  // }
+
+  // For each WLS
+  for(auto wlsEle : getParamBank().getWLSs()){
+    auto wlsID = wlsEle.second->getID();
+    auto pmIDs = wlsEle.second->getPMIDs();
+
     getStatistics().createHistogram(new TH1F(
-      Form("offset_sipm_%d", pmID), Form("Offset for SiPM %d", pmID),
-      200, -1.1*fMergingTime, 1.1*fMergingTime
+      Form("wls_%d_tot_sum", wlsID), Form("Sum of ToTs on WLS ID %d", wlsID),
+      200, 0.0, 200000.0
     ));
-    getStatistics().getHisto1D(Form("offset_sipm_%d", pmID))->GetXaxis()->SetTitle("Time difference [ps]");
-    getStatistics().getHisto1D(Form("offset_sipm_%d", pmID))->GetYaxis()->SetTitle("Number of Raw Signal pairs");
+    getStatistics().getHisto1D(Form("wls_%d_tot_sum", wlsID))->GetXaxis()->SetTitle("TOT [ps]");
+    getStatistics().getHisto1D(Form("wls_%d_tot_sum", wlsID))->GetYaxis()->SetTitle("Number of Mtx Signals");
+
+    for(int i=0; i<pmIDs.size(); i++) {
+      if(pmIDs.at(i)!=-1){
+        getStatistics().createHistogram(new TH1F(
+          Form("wls_%d_tot_sipm_%d", wlsID, pmIDs.at(i)),
+          Form("ToTs of signals SiPM %d on WLS ID %d", pmIDs.at(i), wlsID),
+          200, 0.0, 200000.0
+        ));
+        getStatistics().getHisto1D(Form("wls_%d_tot_sipm_%d", wlsID, pmIDs.at(i)))->GetXaxis()->SetTitle("TOT [ps]");
+        getStatistics().getHisto1D(Form("wls_%d_tot_sipm_%d", wlsID, pmIDs.at(i)))->GetYaxis()->SetTitle("Number of Signals");
+      }
+    }
   }
 
 }
