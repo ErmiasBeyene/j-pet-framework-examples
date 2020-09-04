@@ -38,8 +38,7 @@ public:
   static std::vector<JPetSigCh> buildSigChs(
     TDCChannel *tdcChannel, const JPetChannel &channel,
     double maxTime, double minTime,
-    boost::property_tree::ptree& siPMCalib,
-    boost::property_tree::ptree& scinCalib
+    boost::property_tree::ptree& siPMCalib
   );
   static void flagSigChs(
     std::vector<JPetSigCh> &inputSigChs, JPetStatistics &stats, bool saveHistos

@@ -54,7 +54,7 @@ protected:
   double fSigChLeadTrailMaxTime = 23000.0;
   double fSigChEdgeMaxTime = 5000.0;
   bool fSaveControlHistos = true;
-  double fScalingFactor = 0.01;
+  double fScalingFactor = 1.0;
   int fMinPMID = 0;
   int fMaxPMID = 1;
 

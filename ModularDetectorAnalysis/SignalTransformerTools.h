@@ -22,33 +22,43 @@
   * Contains methods merging Raw Signals from matrix of SiPMs to a Physical Signal
   */
 
- #include <JPetStatistics/JPetStatistics.h>
- #include <JPetTimeWindow/JPetTimeWindow.h>
- #include <JPetMatrixSignal/JPetMatrixSignal.h>
- #include <JPetRawSignal/JPetRawSignal.h>
- #include <JPetPM/JPetPM.h>
- #include <utility>
- #include <vector>
+#include <boost/property_tree/ptree.hpp>
 
- class SignalTransformerTools
- {
- public:
-   static const std::pair<std::map<int, std::vector<std::vector<JPetRawSignal>>>,
-   std::map<int, std::vector<JPetRawSignal>>>
-   getRawSigMtxWLSMap(const JPetTimeWindow* timeWindow);
+#include <JPetMatrixSignal/JPetMatrixSignal.h>
+#include <JPetStatistics/JPetStatistics.h>
+#include <JPetTimeWindow/JPetTimeWindow.h>
+#include <JPetRawSignal/JPetRawSignal.h>
+#include <JPetWLS/JPetWLS.h>
+#include <JPetPM/JPetPM.h>
 
-   static std::vector<JPetMatrixSignal> mergeSignalsAllSiPMs(
-     std::map<int, std::vector<std::vector<JPetRawSignal>>>& rawSigMtxMap, double mergingTime
-   );
+#include <utility>
+#include <vector>
 
-   static std::vector<JPetMatrixSignal> mergeRawSignalsOnSide(
-     std::vector<JPetRawSignal>& rawSigVec, double mergingTime
-   );
+class SignalTransformerTools
+{
+public:
+  static const std::pair<std::map<int, std::vector<std::vector<JPetRawSignal>>>,
+  std::map<int, std::vector<JPetRawSignal>>>
+  getRawSigMtxWLSMap(const JPetTimeWindow* timeWindow);
 
-   static double getRawSigBaseTime(JPetRawSignal& rawSig);
+  static std::vector<JPetMatrixSignal> mergeScinSiPMSignals(
+    std::map<int, std::vector<std::vector<JPetRawSignal>>>& rawSigMtxMap, double mergingTime,
+    boost::property_tree::ptree& scinSync, JPetStatistics& stats, bool saveHistos
+  );
 
- private:
-   static double calculateAverageTime(JPetMatrixSignal& mtxSig);
-   static void sortByTime(std::vector<JPetRawSignal>& input);
- };
- #endif /* !SIGNALTRANSFORMERTOOLS_H */
+  static std::vector<JPetMatrixSignal> mergeWLSSiPMSignals(
+    const std::map<int, JPetWLS*>& wlsMap, std::map<int, std::vector<JPetRawSignal>>& rawSigWLSMap,
+    double mergingTime, JPetStatistics& stats, bool saveHistos
+  );
+
+  static std::vector<JPetMatrixSignal> mergeRawSignalsOnSide(
+    std::vector<JPetRawSignal>& rawSigVec, double mergingTime, double offset
+  );
+
+  static double getRawSigBaseTime(JPetRawSignal& rawSig);
+
+private:
+  static double calculateAverageTime(JPetMatrixSignal& mtxSig);
+  static void sortByTime(std::vector<JPetRawSignal>& input);
+};
+#endif /* !SIGNALTRANSFORMERTOOLS_H */

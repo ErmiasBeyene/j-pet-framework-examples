@@ -54,12 +54,6 @@ bool HitFinder::init()
     fSaveControlHistos = getOptionAsBool(fParams.getOptions(), kSaveControlHistosParamKey);
   }
 
-  // Parameters fof reference detector
-  if (isOptionSet(fParams.getOptions(), kRefDetScinIDParamKey)) {
-    fRefDetScinID = getOptionAsInt(fParams.getOptions(), kRefDetScinIDParamKey);
-    INFO(Form("Using reference detector - scintillator ID: %d", fRefDetScinID));
-  }
-
   if (isOptionSet(fParams.getOptions(), kMinScinIDParamKey)) {
     fMinScinID = getOptionAsInt(fParams.getOptions(), kMinScinIDParamKey);
   } else {
@@ -83,7 +77,7 @@ bool HitFinder::exec()
   if (auto timeWindow = dynamic_cast<const JPetTimeWindow* const>(fEvent)) {
     auto signalsBySlot = HitFinderTools::getSignalsByScin(timeWindow);
     auto allHits = HitFinderTools::matchAllSignals(
-      signalsBySlot, fABTimeDiff, fRefDetScinID,
+      signalsBySlot, fABTimeDiff, -1,
       getStatistics(), fSaveControlHistos
     );
     saveHits(allHits);
@@ -93,46 +87,6 @@ bool HitFinder::exec()
 
 bool HitFinder::terminate()
 {
-  if (isOptionSet(fParams.getOptions(), kOffestsFileParamKey) && fSaveControlHistos) {
-    INFO("Hit finding - printing out offsets for Scins in matrices");
-    fOffsetsFile = getOptionAsString(fParams.getOptions(), kOffestsFileParamKey);
-
-    namespace pt = boost::property_tree;
-    using namespace std;
-
-    pt::ptree root;
-    pt::ptree scin_node;
-
-    for(int scinID = fMinScinID; scinID<=fMaxScinID; scinID++){
-      int bin = scinID-fMinScinID+1;
-      auto projX = getStatistics().getHisto2D("time_diff_per_scin")->ProjectionX("_px", bin, bin+1);
-      scin_node.put(to_string(scinID), projX->GetMean());
-    }
-    root.add_child("scin_offsets", scin_node);
-
-    // Merging used calibration with new one - iteration alike
-    if (isOptionSet(fParams.getOptions(), kScinCalibFileParamKey)) {
-      auto scinCalibFileName = getOptionAsString(fParams.getOptions(), kScinCalibFileParamKey);
-
-      pt::ptree rootOld;
-      pt::read_json(scinCalibFileName, rootOld);
-
-      pt::ptree new_root;
-      pt::ptree new_scin_node;
-
-      for(int scinID = fMinScinID; scinID<=fMaxScinID; scinID++){
-        double oldOffset = rootOld.get("scin_offsets."+to_string(scinID), 0.0);
-        double newOffset = root.get("scin_offsets."+to_string(scinID), 0.0);
-        new_scin_node.put(to_string(scinID), oldOffset+newOffset);
-      }
-      new_root.add_child("scin_offsets", new_scin_node);
-      pt::write_json(fOffsetsFile, new_root);
-
-    }else{
-      pt::write_json(fOffsetsFile, root);
-    }
-  }
-
   INFO("Hit finding ended");
   return true;
 }

@@ -97,6 +97,14 @@ bool EventFinder::init()
     fZoomTOTMax = getOptionAsDouble(fParams.getOptions(), kZoomTOTMaxParamKey);
   }
 
+  // Hit ToT cut parameters
+  if (isOptionSet(fParams.getOptions(), kToTCutMinParamKey)) {
+    fTOTCutMin = getOptionAsDouble(fParams.getOptions(), kToTCutMinParamKey);
+  }
+  if (isOptionSet(fParams.getOptions(), kToTCutMaxParamKey)) {
+    fTOTCutMax = getOptionAsDouble(fParams.getOptions(), kToTCutMaxParamKey);
+  }
+
   // Minimum number of hits in an event to save an event
   if (isOptionSet(fParams.getOptions(), kEventMinMultiplicity)) {
     fMinMultiplicity = getOptionAsInt(fParams.getOptions(), kEventMinMultiplicity);
@@ -175,10 +183,12 @@ vector<JPetEvent> EventFinder::buildEvents(const JPetTimeWindow& timeWindow)
       if (fabs(nextHit.getTime() - hit.getTime()) < fEventTimeWindow) {
         auto hitID = hit.getScin().getID();
         auto nextHitID = hit.getScin().getID();
-        // different scin IDs condition
-        if( !((hitID>=201 && hitID<=213 && nextHitID>=227 && nextHitID<252)
-          || (hitID>=227 && hitID<=252 && nextHitID>=201 && nextHitID<213))
-        ) {
+
+        auto hLID = hit.getScin().getSlot().getLayer().getID();
+        auto nHLID = hit.getScin().getSlot().getLayer().getID();
+
+        // coincidence of hits from different layers
+        if(hLID==nHLID) {
           nextCount++;
           continue;
         }
@@ -187,27 +197,17 @@ vector<JPetEvent> EventFinder::buildEvents(const JPetTimeWindow& timeWindow)
         auto hitStats = getStats(hit);
         auto nextHitStats = getStats(nextHit);
 
-        getStatistics().getHisto2D("coin_tdiff_per_scin")->Fill(get<1>(hitStats), hitID);
         getStatistics().getHisto2D("coin_tot_per_scin")->Fill(get<2>(hitStats), hitID);
-        getStatistics().getHisto2D("coin_tdiff_per_scin")->Fill(get<1>(nextHitStats), nextHitID);
         getStatistics().getHisto2D("coin_tot_per_scin")->Fill(get<2>(nextHitStats), nextHitID);
+        getStatistics().getHisto2D("coin_tdiff_per_scin")->Fill(get<1>(hitStats), hitID);
+        getStatistics().getHisto2D("coin_tdiff_per_scin")->Fill(get<1>(nextHitStats), nextHitID);
 
-        // JPetHit mainHit, refHit;
-        // if(hit.getScin().getID() == kMainScinIDParamKey) {
-        //   mainHit = hit;
-        //   refHit = nextHit;
-        // } else {
-        //   mainHit = nextHit;
-        //   refHit = hit;
-        // }
-
-        // auto hitStats = getStats(mainHit);
-        // auto multi = get<0>(hitStats);
-        // auto tdiff = get<1>(hitStats);
-        // auto tot = get<2>(hitStats);
-        // auto revToT = get<3>(hitStats);
-
-        // getStatistics().getHisto1D("coin_tot")->Fill(tot);
+        if(get<2>(hitStats) > kToTCutMinParamKey && get<2>(hitStats) < kToTCutMaxParamKey){
+          getStatistics().getHisto2D("coin_tdiff_per_scin_cut")->Fill(get<1>(hitStats), hitID);
+        }
+        if(get<2>(nextHitStats) > kToTCutMinParamKey && get<2>(nextHitStats) < kToTCutMaxParamKey){
+          getStatistics().getHisto2D("coin_tdiff_per_scin_cut")->Fill(get<1>(nextHitStats), nextHitID);
+        }
 
         // Checking multi cut and ToT cut
         // if(multi == 16) {
@@ -225,11 +225,6 @@ vector<JPetEvent> EventFinder::buildEvents(const JPetTimeWindow& timeWindow)
           //   auto correction = (revToT-fTimeWalkBParam)/fTimeWalkAParam;
           //   getStatistics().getHisto2D("tdiff_tot_zoom_tw")->Fill(tdiff*fTimeWalkAParam+fTimeWalkBParam, revToT);
           //
-          //   // Offsets histograms
-          //   plotOffsetHistograms(mainHit.getSignalA(), "A", "main");
-          //   plotOffsetHistograms(mainHit.getSignalB(), "B", "main");
-          //   plotOffsetHistograms(refHit.getSignalA(), "A", "ref");
-          //   plotOffsetHistograms(refHit.getSignalA(), "B", "ref");
           // }
         // }
       } else {
@@ -244,14 +239,6 @@ vector<JPetEvent> EventFinder::buildEvents(const JPetTimeWindow& timeWindow)
     // Not needed now
     // if(fSaveControlHistos) {
     //   getStatistics().getHisto1D("hits_per_event_all")->Fill(event.getHits().size());
-    //   if(event.getRecoFlag()==JPetEvent::Good){
-    //     getStatistics().getHisto1D("good_vs_bad_events")->Fill(1);
-    //   } else if(event.getRecoFlag()==JPetEvent::Corrupted){
-    //     getStatistics().getHisto1D("good_vs_bad_events")->Fill(2);
-    //   } else {
-    //     getStatistics().getHisto1D("good_vs_bad_events")->Fill(3);
-    //   }
-    // }
     // if(event.getHits().size() >= fMinMultiplicity){
     //   eventVec.push_back(event);
     //   if(fSaveControlHistos) {
@@ -299,18 +286,29 @@ void EventFinder::initialiseHistograms(){
   // getStatistics().getHisto1D("coin_tot")->GetXaxis()->SetTitle("Hits in Event");
   // getStatistics().getHisto1D("coin_tot")->GetYaxis()->SetTitle("Number of Hits");
 
+  auto minScinID = getParamBank().getScins().begin()->first;
+  auto maxScinID = getParamBank().getScins().rbegin()->first;
+
   getStatistics().createHistogram(new TH2F(
     "coin_tdiff_per_scin", "Time difference of coincidence hits per scintillator",
-    200, -1.1 * 5000.0, 1.1 * 5000.0,
-    52, 201-0.5, 252+0.5
+    200, -1.1 * fMergingTime, 1.1 * fMergingTime,
+    maxScinID-minScinID+1, minScinID-0.5, maxScinID+0.5
   ));
   getStatistics().getHisto2D("coin_tdiff_per_scin")->GetXaxis()->SetTitle("A-B time difference [ps]");
   getStatistics().getHisto2D("coin_tdiff_per_scin")->GetYaxis()->SetTitle("ID of Scintillator");
 
   getStatistics().createHistogram(new TH2F(
+    "coin_tdiff_per_scin_cut", "Time difference of coincidence hits per scintillator after ToT cut",
+    200, -1.1 * fMergingTime, 1.1 * fMergingTime,
+    maxScinID-minScinID+1, minScinID-0.5, maxScinID+0.5
+  ));
+  getStatistics().getHisto2D("coin_tdiff_per_scin_cut")->GetXaxis()->SetTitle("A-B time difference [ps]");
+  getStatistics().getHisto2D("coin_tdiff_per_scin_cut")->GetYaxis()->SetTitle("ID of Scintillator");
+
+  getStatistics().createHistogram(new TH2F(
     "coin_tot_per_scin", "ToT of coincidence hits per scintillator",
     200, 0.0, 150000.0,
-    52, 201-0.5, 252+0.5
+    maxScinID-minScinID+1, minScinID-0.5, maxScinID+0.5
   ));
   getStatistics().getHisto2D("coin_tot_per_scin")->GetXaxis()->SetTitle("A-B time difference [ps]");
   getStatistics().getHisto2D("coin_tot_per_scin")->GetYaxis()->SetTitle("ID of Scintillator");
@@ -419,22 +417,4 @@ tuple<int, double, double, double> EventFinder::getStatsPerTHR(const JPetHit& hi
 double EventFinder::getRawSigBaseTime(const JPetRawSignal& rawSig)
 {
   return rawSig.getPoints(JPetSigCh::Leading, JPetRawSignal::ByThrValue).at(0).getTime();
-}
-
-void EventFinder::plotOffsetHistograms(const JPetMatrixSignal& mtxSig, string side, string type)
-{
-  auto rawSigMap = mtxSig.getRawSignals();
-
-  // Looking for first
-  auto search1 = rawSigMap.find(1);
-  if (search1 != rawSigMap.end()) {
-    auto t1 = getRawSigBaseTime(rawSigMap.at(1));
-    for(int i=2;i<5;i++){
-      auto searchI = rawSigMap.find(i);
-      if (searchI != rawSigMap.end()) {
-        auto tI = getRawSigBaseTime(rawSigMap.at(i));
-        getStatistics().getHisto1D(Form("mtx_offsets_%s_%s_1_%d", side.c_str(), type.c_str(), i))->Fill(tI-t1);
-      }
-    }
-  }
 }

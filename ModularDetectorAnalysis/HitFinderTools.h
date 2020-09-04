@@ -49,7 +49,7 @@ public:
   static JPetHit createHit(
     const JPetMatrixSignal& signal1, const JPetMatrixSignal& signal2
   );
-  static JPetHit createDummyRefDetHit(const JPetMatrixSignal& signal);
+  static JPetHit createDummyHit(const JPetMatrixSignal& signal);
   static double calculateTOT(JPetHit& hit);
 };
 

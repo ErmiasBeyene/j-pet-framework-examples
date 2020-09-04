@@ -79,20 +79,106 @@ SignalTransformerTools::getRawSigMtxWLSMap(const JPetTimeWindow* timeWindow)
  * Method iterates over all matrices in the detector with signals,
  * calling merging procedure for each
  */
-vector<JPetMatrixSignal> SignalTransformerTools::mergeSignalsAllSiPMs(
-   map<int, vector<vector<JPetRawSignal>>>& rawSigMtxMap, double mergingTime
+vector<JPetMatrixSignal> SignalTransformerTools::mergeScinSiPMSignals(
+  map<int, vector<vector<JPetRawSignal>>>& rawSigMtxMap, double mergingTime,
+  boost::property_tree::ptree& scinSync, JPetStatistics& stats, bool saveHistos
 ) {
   vector<JPetMatrixSignal> allMtxSignals;
   // Iterating over whole map
   for (auto& rawSigScin : rawSigMtxMap) {
+    if(rawSigScin.second.size()==0) { continue; }
+    if(rawSigScin.second.at(0).size()==0) { continue; }
+    auto scinID = rawSigScin.second.at(0).at(0).getPM().getScin().getID();
+    // Getting offsets for this scintillator -
+    // if calibrations are empty then default vaule is 0.0
+    double offset = scinSync.get("scin_offsets."+to_string(scinID), 0.0);
+
     for (auto& rawSigSide : rawSigScin.second){
-      auto mtxSignals = mergeRawSignalsOnSide(
-        rawSigSide, mergingTime
-      );
+      auto mtxSignals = mergeRawSignalsOnSide(rawSigSide, mergingTime, offset);
       allMtxSignals.insert(allMtxSignals.end(), mtxSignals.begin(), mtxSignals.end());
     }
   }
+
+  for (auto& mtxSig : allMtxSignals) {
+
+    if(saveHistos){
+      if(mtxSig.getPM().getDesc()=="scin") {
+        auto scinID = mtxSig.getPM().getScin().getID();
+        // if(scinID<fMinScinID || scinID>fMaxScinID) { continue; }
+
+        stats.getHisto1D("mtxsig_multi")->Fill(mtxSig.getRawSignals().size());
+        if(mtxSig.getPM().getSide()==JPetPM::SideA){
+          stats.getHisto1D("mtxsig_per_scin_sideA")->Fill(scinID);
+        } else if(mtxSig.getPM().getSide()==JPetPM::SideB){
+          stats.getHisto1D("mtxsig_per_scin_sideB")->Fill(scinID);
+        }
+        auto rawSigVec = mtxSig.getRawSignals();
+        if(rawSigVec.size() == 4) {
+          auto side = rawSigVec.at(1).getPM().getSide();
+          auto pm1ID = rawSigVec.at(1).getPM().getID();
+          auto pm2ID = rawSigVec.at(2).getPM().getID();
+          auto pm3ID = rawSigVec.at(3).getPM().getID();
+          auto pm4ID = rawSigVec.at(4).getPM().getID();
+          auto t1 = SignalTransformerTools::getRawSigBaseTime(rawSigVec.at(1));
+          auto t2 = SignalTransformerTools::getRawSigBaseTime(rawSigVec.at(2));
+          auto t3 = SignalTransformerTools::getRawSigBaseTime(rawSigVec.at(3));
+          auto t4 = SignalTransformerTools::getRawSigBaseTime(rawSigVec.at(4));
+          stats.getHisto1D(Form("offset_sipm_%d", pm2ID))->Fill(t2-t1);
+          stats.getHisto1D(Form("offset_sipm_%d", pm3ID))->Fill(t3-t1);
+          stats.getHisto1D(Form("offset_sipm_%d", pm4ID))->Fill(t4-t1);
+        }
+      }
+    }
+  }
   return allMtxSignals;
+}
+
+/**
+ * Method iterates over all WLSs and creates vestor of signals, that are assigned to it.
+ * For each created vector, the merging method is called
+ */
+vector<JPetMatrixSignal> SignalTransformerTools::mergeWLSSiPMSignals(
+  const map<int, JPetWLS*>& wlsMap, map<int, vector<JPetRawSignal>>& rawSigWLSMap,
+  double mergingTime, JPetStatistics& stats, bool saveHistos
+) {
+  vector<JPetMatrixSignal> allWLSSignals;
+
+  for(auto& wlsEle : wlsMap) {
+    auto wlsID = wlsEle.second->getID();
+    auto pmIDs = wlsEle.second->getPMIDs();
+
+    // cout << "WLS ID: " << wlsID << " sipms: " << pmIDs.size() << " ids: ";
+    // for(auto id : pmIDs) { cout << id; }
+    // cout << endl;
+
+    vector<JPetRawSignal> wlsSignals;
+    for(auto& pmEle : rawSigWLSMap) {
+      for(auto id : pmIDs) {
+        if(pmEle.first == id) {
+           wlsSignals.insert(wlsSignals.end(), pmEle.second.begin(), pmEle.second.end());
+        }
+      }
+    }
+
+    auto matchedWLSSig = SignalTransformerTools::mergeRawSignalsOnSide(wlsSignals, mergingTime, 0.0);
+    allWLSSignals.insert(allWLSSignals.end(), matchedWLSSig.begin(), matchedWLSSig.end());
+
+    if(saveHistos){
+      for(auto mtxSig : matchedWLSSig) {
+        stats.getHisto1D(Form("wls_%d_tot", wlsID))->Fill(mtxSig.getTOT());
+
+        for(auto sigEle : mtxSig.getRawSignals()){
+          auto pmID = sigEle.second.getPM().getID();
+          auto leads = sigEle.second.getPoints(JPetSigCh::Leading, JPetRawSignal::ByThrValue);
+          auto trails = sigEle.second.getPoints(JPetSigCh::Trailing, JPetRawSignal::ByThrValue);
+          double tot = trails.at(0).getTime()-leads.at(0).getTime();
+          stats.getHisto1D(Form("wls_%d_sipm_%d_tot", wlsID, pmID))->Fill(tot);
+        }
+      }
+    }
+  }
+
+  return allWLSSignals;
 }
 
 /**
@@ -100,7 +186,7 @@ vector<JPetMatrixSignal> SignalTransformerTools::mergeSignalsAllSiPMs(
  * matching them into groups on max. 4 as a MatrixSignal
  */
 vector<JPetMatrixSignal> SignalTransformerTools::mergeRawSignalsOnSide(
-  vector<JPetRawSignal>& rawSigVec, double mergingTime
+  vector<JPetRawSignal>& rawSigVec, double mergingTime, double offset
 ) {
   vector<JPetMatrixSignal> mtxSigVec;
   sortByTime(rawSigVec);
@@ -139,7 +225,7 @@ vector<JPetMatrixSignal> SignalTransformerTools::mergeRawSignalsOnSide(
         break;
       }
     }
-    mtxSig.setTime(calculateAverageTime(mtxSig));
+    mtxSig.setTime(calculateAverageTime(mtxSig)-offset);
     rawSigVec.erase(rawSigVec.begin());
     mtxSigVec.push_back(mtxSig);
   }

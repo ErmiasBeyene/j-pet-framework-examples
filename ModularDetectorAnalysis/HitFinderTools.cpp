@@ -44,6 +44,7 @@ map<int, vector<JPetMatrixSignal>> HitFinderTools::getSignalsByScin(
     WARNING("Pointer of Time Window object is not set, returning empty map");
     return signalScinMap;
   }
+
   const unsigned int nSignals = timeWindow->getNumberOfEvents();
   for (unsigned int i = 0; i < nSignals; i++) {
     auto mtxSig = dynamic_cast<const JPetMatrixSignal&>(timeWindow->operator[](i));
@@ -69,20 +70,20 @@ vector<JPetHit> HitFinderTools::matchAllSignals(
   int refDetScinID, JPetStatistics& stats, bool saveHistos
 ) {
   vector<JPetHit> allHits;
-  vector<JPetHit> refHits;
+  vector<JPetHit> wlsHits;
   for (auto& scinSigals : allSignals) {
-    // Loop for Reference Detector ID
-    if (scinSigals.first == refDetScinID) {
-      for (auto refSignal : scinSigals.second) {
-        auto refHit = createDummyRefDetHit(refSignal);
-        refHits.push_back(refHit);
-        if (saveHistos && refHit.getEnergy()!=0.0) {
-          stats.getHisto1D("ref_hit_signalB_tot")->Fill(refHit.getEnergy());
+    // Loop for WLS signals
+    if (scinSigals.first == -1) {
+      for (auto wlsSignal : scinSigals.second) {
+        auto wlsHit = createDummyHit(wlsSignal);
+        wlsHits.push_back(wlsHit);
+        if (saveHistos && wlsHit.getEnergy()!=0.0) {
+          stats.getHisto1D("wls_hit_tot")->Fill(wlsHit.getEnergy());
         }
       }
-      allHits.insert(allHits.end(), refHits.begin(), refHits.end());
+      allHits.insert(allHits.end(), wlsHits.begin(), wlsHits.end());
       if (saveHistos) {
-        stats.getHisto1D("ref_hits_per_time_slot")->Fill(refHits.size());
+        stats.getHisto1D("wls_hits_per_time_slot")->Fill(wlsHits.size());
       }
       continue;
     }
@@ -186,7 +187,7 @@ JPetHit HitFinderTools::createHit(
  * Method for Hit creation in case of reference detector.
  * Setting only some necessary fields.
  */
-JPetHit HitFinderTools::createDummyRefDetHit(const JPetMatrixSignal& signal)
+JPetHit HitFinderTools::createDummyHit(const JPetMatrixSignal& signal)
 {
   JPetHit hit;
   JPetMatrixSignal dummy;
@@ -198,10 +199,10 @@ JPetHit HitFinderTools::createDummyRefDetHit(const JPetMatrixSignal& signal)
   hit.setQualityOfTimeDiff(-1.0);
   hit.setEnergy(signal.getTOT());
   hit.setQualityOfEnergy(-1.0);
-  hit.setPosX(signal.getPM().getScin().getCenterX());
-  hit.setPosY(signal.getPM().getScin().getCenterY());
+  hit.setPosX(0.0);
+  hit.setPosY(0.0);
   hit.setPosZ(0.0);
-  hit.setScin(signal.getPM().getScin());
+  hit.setScin(JPetScin::getDummyResult());
   return hit;
 }
 

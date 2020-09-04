@@ -64,12 +64,6 @@ bool TimeWindowCreator::init()
     pt::read_json(siPMCalibFileName, fSiPMCalibTree);
   }
 
-  // Reading file with offsets to property tree - synchronization of scintillators
-  if (isOptionSet(fParams.getOptions(), kScinCalibFileParamKey)) {
-    auto scinCalibFileName = getOptionAsString(fParams.getOptions(), kScinCalibFileParamKey);
-    pt::read_json(scinCalibFileName, fScinCalibTree);
-  }
-
   // Getting bool for saving histograms
   if (isOptionSet(fParams.getOptions(), kSaveControlHistosParamKey)) {
     fSaveControlHistos = getOptionAsBool(fParams.getOptions(), kSaveControlHistosParamKey);
@@ -96,9 +90,7 @@ bool TimeWindowCreator::exec()
 
       // Check if channel exists in database from loaded local json file
       if(getParamBank().getChannels().count(channelNumber) == 0) {
-        if (fSaveControlHistos){
-         getStatistics().getHisto1D("wrong_channel")->Fill(channelNumber);
-       }
+        if (fSaveControlHistos) { getStatistics().getHisto1D("wrong_channel")->Fill(channelNumber); }
         continue;
       }
 
@@ -107,7 +99,7 @@ bool TimeWindowCreator::exec()
 
       // Building Signal Channels for this Channel
       auto allSigChs = TimeWindowCreatorTools::buildSigChs(
-        tdcChannel, channel, fMaxTime, fMinTime, fSiPMCalibTree, fScinCalibTree
+        tdcChannel, channel, fMaxTime, fMinTime, fSiPMCalibTree
       );
 
       // Sort Signal Channels in time
@@ -131,45 +123,43 @@ bool TimeWindowCreator::terminate()
 
 void TimeWindowCreator::saveSigChs(const vector<JPetSigCh>& sigChVec)
 {
-  if(sigChVec.size()>0){
-    if (fSaveControlHistos){
-      getStatistics().getHisto1D("sig_ch_per_time_slot")->Fill(sigChVec.size());
-    }
+  if(sigChVec.size()>0) {
+    if (fSaveControlHistos) { getStatistics().getHisto1D("sig_ch_per_time_slot")->Fill(sigChVec.size()); }
 
     double lastTime = 0.0;
-
     for (auto & sigCh : sigChVec) {
-      if(sigCh.getRecoFlag()==JPetSigCh::Good){
-        fOutputEvents->add<JPetSigCh>(sigCh);
+      if(sigCh.getRecoFlag()==JPetSigCh::Good){ fOutputEvents->add<JPetSigCh>(sigCh); }
+      if(fSaveControlHistos){
 
-        if(fSaveControlHistos){
-          if(gRandom->Uniform()<fScalingFactor){
-            getStatistics().getHisto1D("channel_occ")->Fill(sigCh.getChannel().getID());
-            getStatistics().getHisto1D("channel_thrnum")->Fill(sigCh.getChannel().getThresholdNumber());
-            getStatistics().getHisto1D("pm_occ")->Fill(sigCh.getChannel().getPM().getID());
-            getStatistics().getHisto1D("matrix_occ")->Fill(sigCh.getChannel().getPM().getMatrixPosition());
+        if(gRandom->Uniform()<fScalingFactor){
+          getStatistics().getHisto1D("channel_occ")->Fill(sigCh.getChannel().getID());
+          getStatistics().getHisto1D("channel_thrnum")->Fill(sigCh.getChannel().getThresholdNumber());
+          getStatistics().getHisto1D("pm_occ")->Fill(sigCh.getChannel().getPM().getID());
+
+          if(sigCh.getChannel().getPM().getSide()==JPetPM::SideA){
             getStatistics().getHisto1D("scin_occ")->Fill(sigCh.getChannel().getPM().getScin().getID());
-            if(sigCh.getChannel().getPM().getSide()==JPetPM::SideA){
-              getStatistics().getHisto1D("pm_occ_sides")->Fill(1);
-            } else if(sigCh.getChannel().getPM().getSide()==JPetPM::SideB){
-              getStatistics().getHisto1D("pm_occ_sides")->Fill(2);
-            }
-            if(sigCh.getRecoFlag() == JPetSigCh::Good){
-              getStatistics().getHisto1D("good_vs_bad_sigch")->Fill(1);
-            } else if(sigCh.getRecoFlag() == JPetSigCh::Corrupted) {
-              getStatistics().getHisto1D("good_vs_bad_sigch")->Fill(2);
-            } else if(sigCh.getRecoFlag() == JPetSigCh::Unknown) {
-              getStatistics().getHisto1D("good_vs_bad_sigch")->Fill(3);
-            }
+            getStatistics().getHisto1D("matrix_occ")->Fill(sigCh.getChannel().getPM().getMatrixPosition());
+            getStatistics().getHisto1D("pm_occ_sides")->Fill(1);
+          } else if(sigCh.getChannel().getPM().getSide()==JPetPM::SideB){
+            getStatistics().getHisto1D("scin_occ")->Fill(sigCh.getChannel().getPM().getScin().getID());
+            getStatistics().getHisto1D("matrix_occ")->Fill(sigCh.getChannel().getPM().getMatrixPosition());
+            getStatistics().getHisto1D("pm_occ_sides")->Fill(2);
+          } else if(sigCh.getChannel().getPM().getSide()==JPetPM::WLS){
+            getStatistics().getHisto1D("pm_occ_sides")->Fill(3);
           }
 
-          if(sigCh.getType() == JPetSigCh::Leading && sigCh.getChannel().getThresholdNumber()==1){
-            if(lastTime != 0.0){
-              getStatistics().getHisto1D("consec_lead_THR1")->Fill(sigCh.getTime()-lastTime);
-            } else {
-              lastTime = sigCh.getTime();
-            }
+          if(sigCh.getRecoFlag() == JPetSigCh::Good){
+            getStatistics().getHisto1D("good_vs_bad_sigch")->Fill(1);
+          } else if(sigCh.getRecoFlag() == JPetSigCh::Corrupted) {
+            getStatistics().getHisto1D("good_vs_bad_sigch")->Fill(2);
+          } else if(sigCh.getRecoFlag() == JPetSigCh::Unknown) {
+            getStatistics().getHisto1D("good_vs_bad_sigch")->Fill(3);
           }
+        }
+
+        if(sigCh.getType() == JPetSigCh::Leading && sigCh.getChannel().getThresholdNumber()==1){
+          if(lastTime != 0.0){ getStatistics().getHisto1D("consec_lead_THR1")->Fill(sigCh.getTime()-lastTime);
+          } else { lastTime = sigCh.getTime(); }
         }
       }
     }
@@ -187,8 +177,10 @@ void TimeWindowCreator::initialiseHistograms(){
   ->GetYaxis()->SetTitle("Number of Time Slots");
 
   // Channels
-  auto minChannelID = getParamBank().getChannels().begin()->first;
-  auto maxChannelID = getParamBank().getChannels().rbegin()->first;
+  // auto minChannelID = getParamBank().getChannels().begin()->first;
+  // auto maxChannelID = getParamBank().getChannels().rbegin()->first;
+  auto minChannelID = 2100;
+  auto maxChannelID = 2940;
 
   // Wrong configuration
   getStatistics().createHistogram(new TH1F(
@@ -222,10 +214,11 @@ void TimeWindowCreator::initialiseHistograms(){
   getStatistics().getHisto1D("pm_occ")->GetYaxis()->SetTitle("Number of SigCh");
 
   getStatistics().createHistogram(
-    new TH1F("pm_occ_sides", "PMs occupation of sides (downscaled)", 3, 0.5, 3.5)
+    new TH1F("pm_occ_sides", "PMs occupation of sides (downscaled)", 4, 0.5, 4.5)
   );
   getStatistics().getHisto1D("pm_occ_sides")->GetXaxis()->SetBinLabel(1, "SIDE A");
   getStatistics().getHisto1D("pm_occ_sides")->GetXaxis()->SetBinLabel(2, "SIDE B");
+  getStatistics().getHisto1D("pm_occ_sides")->GetXaxis()->SetBinLabel(3, "WLS");
   getStatistics().getHisto1D("pm_occ_sides")->GetYaxis()->SetTitle("Number of SigCh");
 
   // Scins

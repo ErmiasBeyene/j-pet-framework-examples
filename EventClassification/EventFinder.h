@@ -52,7 +52,6 @@ protected:
   std::tuple<int, double, double, double> getStatsPerTHR(const JPetHit& hit, int thrNum);
   std::tuple<int, double, double, double> getStats(const JPetHit& hit);
   static double getRawSigBaseTime(const JPetRawSignal& rawSig);
-  void plotOffsetHistograms(const JPetMatrixSignal& mtxSig, std::string side, std::string type);
   void initialiseHistograms();
 
   const std::string kUseCorruptedHitsParamKey = "EventFinder_UseCorruptedHits_bool";
@@ -84,7 +83,7 @@ protected:
   const std::string kZoomTDiffMaxParamKey = "EventFinder_ZoomTDiffMax_double";
   const std::string kZoomTOTMinParamKey = "EventFinder_ZoomTOTOMin_double";
   const std::string kZoomTOTMaxParamKey = "EventFinder_ZoomTOTMax_double";
-  
+
   bool fUseCorruptedHits = false;
   bool fSaveControlHistos = true;
 
@@ -105,6 +104,9 @@ protected:
   double fZoomTDiffMax = 5000.0;
   double fZoomTOTMin = -0.00001;
   double fZoomTOTMax = 0.00001;
+
+  double fTOTCutMin = 10.000;
+  double fTOTCutMax = 50.000;
 
   uint fMinMultiplicity = 1;
 
