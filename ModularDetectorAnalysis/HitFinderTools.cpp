@@ -36,61 +36,70 @@ void HitFinderTools::sortByTime(vector<JPetMatrixSignal>& sigVec)
 /**
  * Method distributing Signals according to Scintillator they belong to
  */
-map<int, vector<JPetMatrixSignal>> HitFinderTools::getSignalsByScin(
-  const JPetTimeWindow* timeWindow
-){
+pair<map<int, vector<JPetMatrixSignal>>, vector<JPetMatrixSignal>>
+HitFinderTools::getMappedSignals(const JPetTimeWindow* timeWindow){
   map<int, vector<JPetMatrixSignal>> signalScinMap;
+  vector<JPetMatrixSignal> wlsSignals;
+
   if (!timeWindow) {
     WARNING("Pointer of Time Window object is not set, returning empty map");
-    return signalScinMap;
+    return make_pair(signalScinMap, wlsSignals);
   }
 
   const unsigned int nSignals = timeWindow->getNumberOfEvents();
   for (unsigned int i = 0; i < nSignals; i++) {
     auto mtxSig = dynamic_cast<const JPetMatrixSignal&>(timeWindow->operator[](i));
-    if(mtxSig.getPM().getDesc()=="wls") { continue; }
-    int scinID = mtxSig.getPM().getScin().getID();
-    auto search = signalScinMap.find(scinID);
-    if (search == signalScinMap.end()) {
-      vector<JPetMatrixSignal> tmp;
-      tmp.push_back(mtxSig);
-      signalScinMap.insert(pair<int, vector<JPetMatrixSignal>>(scinID, tmp));
+    if(mtxSig.getMatrix().getType()=="WLS") {
+      wlsSignals.push_back(mtxSig);
     } else {
-      search->second.push_back(mtxSig);
+      int scinID = mtxSig.getMatrix().getScin().getID();
+      auto search = signalScinMap.find(scinID);
+      if (search == signalScinMap.end()) {
+        vector<JPetMatrixSignal> tmp;
+        tmp.push_back(mtxSig);
+        signalScinMap.insert(pair<int, vector<JPetMatrixSignal>>(scinID, tmp));
+      } else {
+        search->second.push_back(mtxSig);
+      }
     }
   }
-  return signalScinMap;
+  return make_pair(signalScinMap, wlsSignals);
 }
 
 /**
  * Loop over all Scins invoking matching procedure
  */
 vector<JPetHit> HitFinderTools::matchAllSignals(
-  map<int, vector<JPetMatrixSignal>>& allSignals, double timeDiffAB,
-  int refDetScinID, JPetStatistics& stats, bool saveHistos
+  map<int, vector<JPetMatrixSignal>>& abSignals, vector<JPetMatrixSignal>& wlsSignals,
+  double timeDiffAB, JPetStatistics& stats, bool saveHistos
 ) {
   vector<JPetHit> allHits;
-  vector<JPetHit> wlsHits;
-  for (auto& scinSigals : allSignals) {
-    // Loop for WLS signals
-    if (scinSigals.first == -1) {
-      for (auto wlsSignal : scinSigals.second) {
-        auto wlsHit = createDummyHit(wlsSignal);
-        wlsHits.push_back(wlsHit);
-        if (saveHistos && wlsHit.getEnergy()!=0.0) {
-          stats.getHisto1D("wls_hit_tot")->Fill(wlsHit.getEnergy());
-        }
-      }
-      allHits.insert(allHits.end(), wlsHits.begin(), wlsHits.end());
-      if (saveHistos) {
-        stats.getHisto1D("wls_hits_per_time_slot")->Fill(wlsHits.size());
-      }
-      continue;
-    }
-    // Match signals for scintillators
+
+  for (auto& scinSigals : abSignals) {
     auto scinHits = matchSignals(
-      scinSigals.second, timeDiffAB, stats, saveHistos
+      scinSigals.second, wlsSignals, timeDiffAB, stats, saveHistos
     );
+
+    // Loop for WLS signals
+    // if (scinSigals.first == -1) {
+    //   for (auto wlsSignal : scinSigals.second) {
+    //     auto wlsHit = createDummyHit(wlsSignal);
+    //     wlsHits.push_back(wlsHit);
+    //     if (saveHistos && wlsHit.getEnergy()!=0.0) {
+    //       stats.getHisto1D("wls_hit_tot")->Fill(wlsHit.getEnergy());
+    //     }
+    //   }
+    //   allHits.insert(allHits.end(), wlsHits.begin(), wlsHits.end());
+    //   if (saveHistos) {
+    //     stats.getHisto1D("wls_hits_per_time_slot")->Fill(wlsHits.size());
+    //   }
+    //   continue;
+    // }
+    // // Match signals for scintillators
+    // auto scinHits = matchSignals(
+    //   scinSigals.second, timeDiffAB, stats, saveHistos
+    // );
+
     allHits.insert(allHits.end(), scinHits.begin(), scinHits.end());
   }
   if (saveHistos) {
@@ -103,49 +112,52 @@ vector<JPetHit> HitFinderTools::matchAllSignals(
  * Method matching signals on the same Scintillator
  */
 vector<JPetHit> HitFinderTools::matchSignals(
-  vector<JPetMatrixSignal>& scinSigals, double timeDiffAB,
-  JPetStatistics& stats, bool saveHistos
+  vector<JPetMatrixSignal>& scinSigals, vector<JPetMatrixSignal>& wlsSignals,
+  double timeDiffAB, JPetStatistics& stats, bool saveHistos
 ) {
   vector<JPetHit> scinHits;
   vector<JPetMatrixSignal> remainSignals;
   sortByTime(scinSigals);
+  sortByTime(wlsSignals);
+
   while (scinSigals.size() > 0) {
     auto mtxSig = scinSigals.at(0);
+
     if(scinSigals.size() == 1){
       remainSignals.push_back(mtxSig);
       break;
     }
+
+    // Matching signals on sides
     for (unsigned int j = 1; j < scinSigals.size(); j++) {
+      // Time condition
       if (scinSigals.at(j).getTime() - mtxSig.getTime() < timeDiffAB) {
-        if (mtxSig.getPM().getSide() != scinSigals.at(j).getPM().getSide()) {
-          auto hit = createHit(mtxSig, scinSigals.at(j));
-          scinHits.push_back(hit);
-          scinSigals.erase(scinSigals.begin() + j);
-          scinSigals.erase(scinSigals.begin() + 0);
+        // Different types of sides
+        if (mtxSig.getMatrix().getType() != scinSigals.at(j).getMatrix().getType()) {
+          // Found A-B signals in conincidence, looking for additional WLS signal
+          for(int i=0; i<wlsSignals.size(); i++){
+            if (fabs(wlsSignals.at(i).getTime() - mtxSig.getTime()) < timeDiffAB) {
+              // Found a tirad of signals, creating hit
+              // auto hit = createHit(mtxSig, scinSigals.at(j), wlsSignals.at(i));
+              // scinHits.push_back(hit);
+              scinSigals.erase(scinSigals.begin() + j);
+              wlsSignals.erase(wlsSignals.begin() + i);
+              break;
+            }
+          }
           break;
-        } else {
-          if (j == scinSigals.size() - 1) {
-            remainSignals.push_back(mtxSig);
-            scinSigals.erase(scinSigals.begin() + 0);
-            break;
-          } else { continue; }
         }
-      } else {
-        if(saveHistos && mtxSig.getPM().getSide() != scinSigals.at(j).getPM().getSide()){
-          stats.getHisto1D("remain_signals_tdiff")->Fill(
-            scinSigals.at(j).getTime() - mtxSig.getTime()
-          );
-        }
-        remainSignals.push_back(mtxSig);
-        scinSigals.erase(scinSigals.begin() + 0);
-        break;
-      }
+      } else { break; }
     }
-  }
-  if(remainSignals.size()>0 && saveHistos){
-    stats.getHisto1D("remain_signals_per_scin")
-      ->Fill((double)(remainSignals.at(0).getPM().getScin().getID()), remainSignals.size());
-  }
+
+    // Removing initial signal
+    scinSigals.erase(scinSigals.begin() + 0);
+  } // endof while loop
+
+  // if(remainSignals.size()>0 && saveHistos){
+  //   stats.getHisto1D("remain_signals_per_scin")
+  //     ->Fill((double)(remainSignals.at(0).getPM().getScin().getID()), remainSignals.size());
+  // }
   return scinHits;
 }
 
@@ -158,27 +170,27 @@ JPetHit HitFinderTools::createHit(
   JPetMatrixSignal signalA;
   JPetMatrixSignal signalB;
 
-  if (signal1.getPM().getSide() == JPetPM::SideA) {
-    signalA = signal1;
-    signalB = signal2;
-  } else {
-    signalA = signal2;
-    signalB = signal1;
-  }
+  // if (signal1.getPM().getSide() == JPetPM::SideA) {
+  //   signalA = signal1;
+  //   signalB = signal2;
+  // } else {
+  //   signalA = signal2;
+  //   signalB = signal1;
+  // }
 
   JPetHit hit;
-  hit.setSignals(signalA, signalB);
-  hit.setTime((signalA.getTime() + signalB.getTime()) / 2.0);
-  hit.setQualityOfTime(-1.0);
-  hit.setTimeDiff(signalB.getTime() - signalA.getTime());
-  hit.setQualityOfTimeDiff(-1.0);
-  hit.setEnergy(signalA.getTOT()+signalB.getTOT());
-  hit.setQualityOfEnergy(-1.0);
-  hit.setPosX(signalA.getPM().getScin().getCenterX());
-  hit.setPosY(signalA.getPM().getScin().getCenterY());
-  // Hardcoded velocity = 11 ns/cm
-  hit.setPosZ(11.0 * hit.getTimeDiff() / 2000.0);
-  hit.setScin(signalA.getPM().getScin());
+  // hit.setSignals(signalA, signalB);
+  // hit.setTime((signalA.getTime() + signalB.getTime()) / 2.0);
+  // hit.setQualityOfTime(-1.0);
+  // hit.setTimeDiff(signalB.getTime() - signalA.getTime());
+  // hit.setQualityOfTimeDiff(-1.0);
+  // hit.setEnergy(signalA.getTOT()+signalB.getTOT());
+  // hit.setQualityOfEnergy(-1.0);
+  // hit.setPosX(signalA.getPM().getScin().getCenterX());
+  // hit.setPosY(signalA.getPM().getScin().getCenterY());
+  // // Hardcoded velocity = 11 ns/cm
+  // hit.setPosZ(11.0 * hit.getTimeDiff() / 2000.0);
+  // hit.setScin(signalA.getPM().getScin());
 
   return hit;
 }
@@ -190,19 +202,19 @@ JPetHit HitFinderTools::createHit(
 JPetHit HitFinderTools::createDummyHit(const JPetMatrixSignal& signal)
 {
   JPetHit hit;
-  JPetMatrixSignal dummy;
-  hit.setSignalA(dummy);
-  hit.setSignalB(signal);
-  hit.setTime(signal.getTime());
-  hit.setQualityOfTime(-1.0);
-  hit.setTimeDiff(0.0);
-  hit.setQualityOfTimeDiff(-1.0);
-  hit.setEnergy(signal.getTOT());
-  hit.setQualityOfEnergy(-1.0);
-  hit.setPosX(0.0);
-  hit.setPosY(0.0);
-  hit.setPosZ(0.0);
-  hit.setScin(JPetScin::getDummyResult());
+  // JPetMatrixSignal dummy;
+  // hit.setSignalA(dummy);
+  // hit.setSignalB(signal);
+  // hit.setTime(signal.getTime());
+  // hit.setQualityOfTime(-1.0);
+  // hit.setTimeDiff(0.0);
+  // hit.setQualityOfTimeDiff(-1.0);
+  // hit.setEnergy(signal.getTOT());
+  // hit.setQualityOfEnergy(-1.0);
+  // hit.setPosX(0.0);
+  // hit.setPosY(0.0);
+  // hit.setPosZ(0.0);
+  // hit.setScin(JPetScin::getDummyResult());
   return hit;
 }
 

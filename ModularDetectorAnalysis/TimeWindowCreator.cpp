@@ -136,18 +136,6 @@ void TimeWindowCreator::saveSigChs(const vector<JPetSigCh>& sigChVec)
           getStatistics().getHisto1D("channel_thrnum")->Fill(sigCh.getChannel().getThresholdNumber());
           getStatistics().getHisto1D("pm_occ")->Fill(sigCh.getChannel().getPM().getID());
 
-          if(sigCh.getChannel().getPM().getSide()==JPetPM::SideA){
-            getStatistics().getHisto1D("scin_occ")->Fill(sigCh.getChannel().getPM().getScin().getID());
-            getStatistics().getHisto1D("matrix_occ")->Fill(sigCh.getChannel().getPM().getMatrixPosition());
-            getStatistics().getHisto1D("pm_occ_sides")->Fill(1);
-          } else if(sigCh.getChannel().getPM().getSide()==JPetPM::SideB){
-            getStatistics().getHisto1D("scin_occ")->Fill(sigCh.getChannel().getPM().getScin().getID());
-            getStatistics().getHisto1D("matrix_occ")->Fill(sigCh.getChannel().getPM().getMatrixPosition());
-            getStatistics().getHisto1D("pm_occ_sides")->Fill(2);
-          } else if(sigCh.getChannel().getPM().getSide()==JPetPM::WLS){
-            getStatistics().getHisto1D("pm_occ_sides")->Fill(3);
-          }
-
           if(sigCh.getRecoFlag() == JPetSigCh::Good){
             getStatistics().getHisto1D("good_vs_bad_sigch")->Fill(1);
           } else if(sigCh.getRecoFlag() == JPetSigCh::Corrupted) {
@@ -177,10 +165,8 @@ void TimeWindowCreator::initialiseHistograms(){
   ->GetYaxis()->SetTitle("Number of Time Slots");
 
   // Channels
-  // auto minChannelID = getParamBank().getChannels().begin()->first;
-  // auto maxChannelID = getParamBank().getChannels().rbegin()->first;
-  auto minChannelID = 2100;
-  auto maxChannelID = 2940;
+  auto minChannelID = getParamBank().getChannels().begin()->first;
+  auto maxChannelID = getParamBank().getChannels().rbegin()->first;
 
   // Wrong configuration
   getStatistics().createHistogram(new TH1F(
@@ -212,32 +198,6 @@ void TimeWindowCreator::initialiseHistograms(){
   ));
   getStatistics().getHisto1D("pm_occ")->GetXaxis()->SetTitle("PM ID");
   getStatistics().getHisto1D("pm_occ")->GetYaxis()->SetTitle("Number of SigCh");
-
-  getStatistics().createHistogram(
-    new TH1F("pm_occ_sides", "PMs occupation of sides (downscaled)", 4, 0.5, 4.5)
-  );
-  getStatistics().getHisto1D("pm_occ_sides")->GetXaxis()->SetBinLabel(1, "SIDE A");
-  getStatistics().getHisto1D("pm_occ_sides")->GetXaxis()->SetBinLabel(2, "SIDE B");
-  getStatistics().getHisto1D("pm_occ_sides")->GetXaxis()->SetBinLabel(3, "WLS");
-  getStatistics().getHisto1D("pm_occ_sides")->GetYaxis()->SetTitle("Number of SigCh");
-
-  // Scins
-  auto scinsMap = getParamBank().getScins();
-  auto minScinID = scinsMap.begin()->first;
-  auto maxScinID = scinsMap.rbegin()->first;
-
-  getStatistics().createHistogram(new TH1F(
-    "scin_occ", "Scins occupation (downscaled)", maxScinID-minScinID+1, minScinID-0.5, maxScinID+0.5
-  ));
-  getStatistics().getHisto1D("scin_occ")->GetXaxis()->SetTitle("SCIN ID");
-  getStatistics().getHisto1D("scin_occ")->GetYaxis()->SetTitle("Number of SigCh");
-
-  // Matrix position
-  getStatistics().createHistogram(new TH1F(
-    "matrix_occ", "Position in matrix in PMs occupation (downscaled)", 6, -0.5, 5.5
-  ));
-  getStatistics().getHisto1D("matrix_occ")->GetXaxis()->SetTitle("Matrix position");
-  getStatistics().getHisto1D("matrix_occ")->GetYaxis()->SetTitle("Number of SigCh");
 
   // Flagging histograms
   getStatistics().createHistogram(new TH1F(

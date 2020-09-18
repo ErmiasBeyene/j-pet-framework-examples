@@ -13,8 +13,8 @@
  *  @file HitFinder.h
  */
 
-#ifndef HITFINDER1_H
-#define HITFINDER1_H
+#ifndef HITFINDER_H
+#define HITFINDER_H
 
 #include <JPetMatrixSignal/JPetMatrixSignal.h>
 #include <JPetUserTask/JPetUserTask.h>
@@ -57,4 +57,4 @@ protected:
   int fMaxScinID = 0;
 };
 
-#endif /* !HITFINDER1_H */
+#endif /* !HITFINDER_H */

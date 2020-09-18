@@ -27,12 +27,12 @@ int main(int argc, const char* argv[]) {
     manager.registerTask<TimeWindowCreator>("TimeWindowCreator");
     manager.registerTask<SignalFinder>("SignalFinder");
     manager.registerTask<SignalTransformer>("SignalTransformer");
-    manager.registerTask<HitFinder>("HitFinder");
+    // manager.registerTask<HitFinder>("HitFinder");
 
     manager.useTask("TimeWindowCreator", "hld", "tslot.raw");
     manager.useTask("SignalFinder", "tslot.raw", "raw.sig");
     manager.useTask("SignalTransformer", "raw.sig", "mtx.sig");
-    manager.useTask("HitFinder", "mtx.sig", "hits");
+    // manager.useTask("HitFinder", "mtx.sig", "hits");
 
     manager.run(argc, argv);
   } catch (const std::exception& except) {

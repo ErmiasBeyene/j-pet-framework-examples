@@ -120,7 +120,7 @@ void SignalFinder::saveRawSignals(const vector<JPetRawSignal>& rawSigVec)
 
     if(fSaveControlHistos){
 
-      auto scinID = rawSig.getPM().getScin().getID();
+      // auto scinID = rawSig.getPM().getScin().getID();
       auto pmID = rawSig.getPM().getID();
       if(pmID<fMinPMID || pmID>fMaxPMID) { continue; }
 
@@ -137,15 +137,13 @@ void SignalFinder::saveRawSignals(const vector<JPetRawSignal>& rawSigVec)
       if(gRandom->Uniform()<fScalingFactor) {
         getStatistics().getHisto1D("rawsig_per_pm")->Fill(pmID);
         getStatistics().getHisto1D("rawsig_multi")->Fill(leads.size()+trails.size());
-        if(scinID!=-1) { getStatistics().getHisto1D("rawsig_per_scin")->Fill(scinID); }
+        // if(scinID!=-1) { getStatistics().getHisto1D("rawsig_per_mtx")->Fill(scinID); }
 
         for(auto& sigCh : leads){
-          getStatistics().getHisto1D("rawsig_mtx_occ")->Fill(sigCh.getChannel().getPM().getMatrixPosition());
           getStatistics().getHisto1D("rawsig_thr_occ")->Fill(sigCh.getChannel().getThresholdNumber());
         }
 
         for(auto& sigCh : trails){
-          getStatistics().getHisto1D("rawsig_mtx_occ")->Fill(sigCh.getChannel().getPM().getMatrixPosition());
           getStatistics().getHisto1D("rawsig_thr_occ")->Fill(sigCh.getChannel().getThresholdNumber());
         }
       }
@@ -155,8 +153,8 @@ void SignalFinder::saveRawSignals(const vector<JPetRawSignal>& rawSigVec)
 
 void SignalFinder::initialiseHistograms(){
 
-  auto minScinID = getParamBank().getScins().begin()->first;
-  auto maxScinID = getParamBank().getScins().rbegin()->first;
+  auto minMtxID = getParamBank().getMatrices().begin()->first;
+  auto maxMtxID = getParamBank().getMatrices().rbegin()->first;
 
   // Unused objects stats
   getStatistics().createHistogram(new TH1F(
@@ -185,11 +183,11 @@ void SignalFinder::initialiseHistograms(){
   getStatistics().getHisto1D("rawsig_per_pm")->GetYaxis()->SetTitle("Number of Raw Signals");
 
   getStatistics().createHistogram(new TH1F(
-    "rawsig_per_scin", "Raw Signals per scintillator",
-    maxScinID-minScinID+1, minScinID-0.5, maxScinID+0.5
+    "rawsig_per_mtx", "Raw Signals per matrix",
+    maxMtxID-minMtxID+1, minMtxID-0.5, maxMtxID+0.5
   ));
-  getStatistics().getHisto1D("rawsig_per_scin")->GetXaxis()->SetTitle("Scin ID");
-  getStatistics().getHisto1D("rawsig_per_scin")->GetYaxis()->SetTitle("Number of Raw Signals");
+  getStatistics().getHisto1D("rawsig_per_mtx")->GetXaxis()->SetTitle("Matrix ID");
+  getStatistics().getHisto1D("rawsig_per_mtx")->GetYaxis()->SetTitle("Number of Raw Signals");
 
   getStatistics().createHistogram(new TH1F(
     "rawsig_thr_occ", "Thresholds occupation in createds Raw Signals",
@@ -197,13 +195,6 @@ void SignalFinder::initialiseHistograms(){
   ));
   getStatistics().getHisto1D("rawsig_thr_occ")->GetXaxis()->SetTitle("Threshold number");
   getStatistics().getHisto1D("rawsig_thr_occ")->GetYaxis()->SetTitle("Number of Signal Channels");
-
-  getStatistics().createHistogram(new TH1F(
-    "rawsig_mtx_occ", "Matrix SiPMs occupation in createds Raw Signals",
-    6, -0.5, 5.5
-  ));
-  getStatistics().getHisto1D("rawsig_mtx_occ")->GetXaxis()->SetTitle("SiPM matrix position number");
-  getStatistics().getHisto1D("rawsig_mtx_occ")->GetYaxis()->SetTitle("Number of Signal Channels");
 
   getStatistics().createHistogram(new TH1F(
     "rawsig_multi", "Raw Signal Multiplicity", 6, 0.5, 6.5

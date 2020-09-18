@@ -75,10 +75,9 @@ bool HitFinder::init()
 bool HitFinder::exec()
 {
   if (auto timeWindow = dynamic_cast<const JPetTimeWindow* const>(fEvent)) {
-    auto signalsBySlot = HitFinderTools::getSignalsByScin(timeWindow);
+    auto mappedSignals = HitFinderTools::getMappedSignals(timeWindow);
     auto allHits = HitFinderTools::matchAllSignals(
-      signalsBySlot, fABTimeDiff, -1,
-      getStatistics(), fSaveControlHistos
+      mappedSignals.first, mappedSignals.second, fABTimeDiff, getStatistics(), fSaveControlHistos
     );
     saveHits(allHits);
   } else return false;
