@@ -34,24 +34,26 @@ class HitFinderTools
 public:
   static void sortByTime(std::vector<JPetMatrixSignal>& signals);
 
-  static std::pair<std::map<int, std::vector<JPetMatrixSignal>>, std::vector<JPetMatrixSignal>>
+  static std::map<string, std::map<int, std::vector<JPetMatrixSignal>>>
   getMappedSignals(const JPetTimeWindow* timeWindow);
 
   static std::vector<JPetHit> matchAllSignals(
-    std::map<int, std::vector<JPetMatrixSignal>>& abSignals,
-    std::vector<JPetMatrixSignal>& wlsSignals,
+    std::map<string, std::map<int, std::vector<JPetMatrixSignal>>>& signalSidesMap,
     double timeDiffAB, JPetStatistics& stats, bool saveHistos
   );
 
   static std::vector<JPetHit> matchSignals(
     std::vector<JPetMatrixSignal>& scinSignals,
     std::vector<JPetMatrixSignal>& wlsSignals,
-    double timeDiffAB, JPetStatistics& stats,
-    bool saveHistos
+    double timeDiffAB, JPetStatistics& stats, bool saveHistos
   );
 
   static JPetHit createHit(
     const JPetMatrixSignal& signal1, const JPetMatrixSignal& signal2
+  );
+
+  static JPetHit createHit(
+    const JPetMatrixSignal& signal1, const JPetMatrixSignal& signal2, const JPetMatrixSignal& signalWLS
   );
 
   static JPetHit createDummyHit(const JPetMatrixSignal& signal);

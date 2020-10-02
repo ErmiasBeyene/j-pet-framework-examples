@@ -63,7 +63,6 @@ protected:
 	boost::property_tree::ptree fSiPMCalibTree;
 	// Number for scaling some histograms, so they are not reaching their memory capacity
 	double fScalingFactor = 1.0;
-
 };
 
 #endif /* !TIMEWINDOWCREATOR_H */

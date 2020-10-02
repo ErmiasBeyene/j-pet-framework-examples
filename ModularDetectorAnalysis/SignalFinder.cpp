@@ -134,10 +134,13 @@ void SignalFinder::saveRawSignals(const vector<JPetRawSignal>& rawSigVec)
       // getStatistics().getHisto1D(Form("lead_thr1_thr2_tdiff_sipm_%d", pmID))->Fill(leadsDiff);
       // getStatistics().getHisto1D(Form("trail_thr1_thr2_tdiff_sipm_%d", pmID))->Fill(trailsDiff);
 
+      if(rawSig.getPM().getPosition()>-99.0){
+        getStatistics().getHisto1D("wls_sig_pos")->Fill(rawSig.getPM().getPosition());
+      }
+
       if(gRandom->Uniform()<fScalingFactor) {
         getStatistics().getHisto1D("rawsig_per_pm")->Fill(pmID);
         getStatistics().getHisto1D("rawsig_multi")->Fill(leads.size()+trails.size());
-        // if(scinID!=-1) { getStatistics().getHisto1D("rawsig_per_mtx")->Fill(scinID); }
 
         for(auto& sigCh : leads){
           getStatistics().getHisto1D("rawsig_thr_occ")->Fill(sigCh.getChannel().getThresholdNumber());
@@ -152,9 +155,6 @@ void SignalFinder::saveRawSignals(const vector<JPetRawSignal>& rawSigVec)
 }
 
 void SignalFinder::initialiseHistograms(){
-
-  auto minMtxID = getParamBank().getMatrices().begin()->first;
-  auto maxMtxID = getParamBank().getMatrices().rbegin()->first;
 
   // Unused objects stats
   getStatistics().createHistogram(new TH1F(
@@ -183,13 +183,6 @@ void SignalFinder::initialiseHistograms(){
   getStatistics().getHisto1D("rawsig_per_pm")->GetYaxis()->SetTitle("Number of Raw Signals");
 
   getStatistics().createHistogram(new TH1F(
-    "rawsig_per_mtx", "Raw Signals per matrix",
-    maxMtxID-minMtxID+1, minMtxID-0.5, maxMtxID+0.5
-  ));
-  getStatistics().getHisto1D("rawsig_per_mtx")->GetXaxis()->SetTitle("Matrix ID");
-  getStatistics().getHisto1D("rawsig_per_mtx")->GetYaxis()->SetTitle("Number of Raw Signals");
-
-  getStatistics().createHistogram(new TH1F(
     "rawsig_thr_occ", "Thresholds occupation in createds Raw Signals",
     3, 0.5, 3.5
   ));
@@ -207,6 +200,13 @@ void SignalFinder::initialiseHistograms(){
   ));
   getStatistics().getHisto1D("rawsig_tslot")->GetXaxis()->SetTitle("Number of Raw Signal in Time Window");
   getStatistics().getHisto1D("rawsig_tslot")->GetYaxis()->SetTitle("Number of Time Windows");
+
+  getStatistics().createHistogram(new TH1F(
+    "wls_sig_pos", "Signal occupancy of WLS SiPMs in position along Z axis",
+    64, -20.38, 20.38
+  ));
+  getStatistics().getHisto1D("wls_sig_pos")->GetXaxis()->SetTitle("SiPM position [cm]");
+  getStatistics().getHisto1D("wls_sig_pos")->GetYaxis()->SetTitle("Number of Raw Signals");
 
   for(int pmID=fMinPMID; pmID<=fMaxPMID; pmID++){
     getStatistics().createHistogram(new TH1F(

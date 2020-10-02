@@ -130,26 +130,44 @@ vector<JPetMatrixSignal> SignalTransformerTools::mergeSignalsAllMtx(
     auto mergedSignals = SignalTransformerTools::mergeSignalsMtx(signals, mergingTime, 0.0, paramBank.getMatrix(mtxID));
     allMtxSignals.insert(allMtxSignals.end(), mergedSignals.begin(), mergedSignals.end());
 
-    if(saveHistos && mtx_p.second->getType()=="WLS"){
-      auto wlsID = mtx_p.second->getWLS().getID();
+    if(saveHistos){
+      if(mtx_p.second->getType()=="WLS") {
+        auto wlsID = mtx_p.second->getWLS().getID();
+        stats.getHisto1D("wls_sig_occ")->Fill(wlsID);
 
-      // if(mergedSignals.size()!=0){
-      //   cout << "wls id: " << wlsID << " size " << mergedSignals.size() << endl;
-      // }
+        for(auto mtxSig : mergedSignals) {
 
-      for(auto mtxSig : mergedSignals) {
-        stats.getHisto1D(Form("wls_%d_tot", wlsID))->Fill(mtxSig.getTOT());
-        for(auto sigEle : mtxSig.getRawSignals()){
-          auto pmID = sigEle.second.getPM().getID();
-          auto leads = sigEle.second.getPoints(JPetSigCh::Leading, JPetRawSignal::ByThrValue);
-          auto trails = sigEle.second.getPoints(JPetSigCh::Trailing, JPetRawSignal::ByThrValue);
-          double tot = trails.at(0).getTime()-leads.at(0).getTime();
-          if(trails.size()>1 && leads.size()>1){
-            tot += trails.at(1).getTime()-leads.at(1).getTime();
+          auto wlsTOT = mtxSig.getTOT();
+          stats.getHisto1D(Form("wls_%d_tot", wlsID))->Fill(wlsTOT);
+
+          auto rawSignals = mtxSig.getRawSignals();
+          double sumWeights = 0.0;
+          double sumPositions = 0.0;
+
+          for(auto rawSignal : rawSignals){
+            // filling histos
+            auto pmID = rawSignal.second.getPM().getID();
+            auto zPos = rawSignal.second.getPM().getPosition();
+            auto partToT = rawSignal.second.getTOT();
+            stats.getHisto1D(Form("wls_%d_sipm_%d_tot", wlsID, pmID))->Fill(partToT);
+
+            // calculating sum with weights
+            sumPositions += zPos*partToT/wlsTOT;
+            sumWeights += partToT/wlsTOT;
           }
-          stats.getHisto1D(Form("wls_%d_sipm_%d_tot", wlsID, pmID))->Fill(tot);
+
+          if(sumWeights!=0.0){
+            stats.getHisto1D("wls_sig_z_pos")->Fill(sumPositions/sumWeights);
+          }
+        }
+
+      } else if(mtx_p.second->getType()=="SideA" || mtx_p.second->getType()=="SideB"){
+        auto scinID = mtx_p.second->getScin().getID();
+        for(auto mtxSig : mergedSignals) {
+          stats.getHisto1D(Form("scin_%d_%s_tot", scinID, mtx_p.second->getType().c_str()))->Fill(mtxSig.getTOT());
         }
       }
+
     }
   }
 

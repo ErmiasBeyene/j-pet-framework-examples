@@ -101,8 +101,7 @@ bool SignalTransformer::exec()
     // );
 
     auto mergedMtxSignals = SignalTransformerTools::mergeSignalsAllMtx(
-      getParamBank(), rawSigPMMap, fMergingTime,
-      getStatistics(), fSaveControlHistos
+      getParamBank(), rawSigPMMap, fMergingTime, getStatistics(), fSaveControlHistos
     );
 
     saveMatrixSignals(mergedMtxSignals);
@@ -196,11 +195,11 @@ void SignalTransformer::initialiseHistograms()
   auto maxMatrixID = getParamBank().getMatrices().rbegin()->first;
 
   getStatistics().createHistogram(new TH1F(
-    "mtxsig_per_matrix", "Number of MatrixSignals per scintillator side A",
+    "mtxsig_per_matrix", "Number of MatrixSignals per matrix",
     maxMatrixID-minMatrixID+1, minMatrixID-0.5, maxMatrixID+0.5
   ));
-  // getStatistics().getHisto1D("mtxsig_per_scin_sideA")->GetXaxis()->SetTitle("Scin ID");
-  // getStatistics().getHisto1D("mtxsig_per_scin_sideA")->GetYaxis()->SetTitle("Number of Matrix Signals");
+  getStatistics().getHisto1D("mtxsig_per_matrix")->GetXaxis()->SetTitle("Matrix ID");
+  getStatistics().getHisto1D("mtxsig_per_matrix")->GetYaxis()->SetTitle("Number of Matrix Signals");
 
 
   // getStatistics().createHistogram(new TH1F(
@@ -227,29 +226,51 @@ void SignalTransformer::initialiseHistograms()
   //   getStatistics().getHisto1D(Form("offset_sipm_%d", pmID))->GetYaxis()->SetTitle("Number of Raw Signal pairs");
   // }
 
-  // For each WLS
+  // WLS
+  getStatistics().createHistogram(new TH1F(
+    "wls_sig_occ", "WLS occupancy", 64, 0.5, 64.5
+  ));
+  getStatistics().getHisto1D("wls_sig_occ")->GetXaxis()->SetTitle("WLS ID");
+  getStatistics().getHisto1D("wls_sig_occ")->GetYaxis()->SetTitle("Number of Matrix signals");
+
+  getStatistics().createHistogram(new TH1F(
+    "wls_sig_z_pos", "WLS matrix signal position based on TOT", 200, -25.0, 25.0
+  ));
+  getStatistics().getHisto1D("wls_sig_z_pos")->GetXaxis()->SetTitle("z [cm]");
+  getStatistics().getHisto1D("wls_sig_z_pos")->GetYaxis()->SetTitle("Number of Matrix signals");
+
   for(auto mtx_p : getParamBank().getMatrices()){
-    if(mtx_p.second->getType()!="WLS") { continue; }
     auto mtxID = mtx_p.second->getID();
-    auto wlsID =  mtx_p.second->getWLS().getID();
 
-    getStatistics().createHistogram(new TH1F(
-      Form("wls_%d_tot", wlsID), Form("ToT on WLS ID %d", wlsID),
-      200, 0.0, 200000.0
-    ));
-    getStatistics().getHisto1D(Form("wls_%d_tot", wlsID))->GetXaxis()->SetTitle("TOT [ps]");
-    getStatistics().getHisto1D(Form("wls_%d_tot", wlsID))->GetYaxis()->SetTitle("Number of Mtx Signals");
+    if(mtx_p.second->getType()=="WLS") {
+      auto wlsID =  mtx_p.second->getWLS().getID();
+      getStatistics().createHistogram(new TH1F(
+        Form("wls_%d_tot", wlsID), Form("ToT on WLS ID %d", wlsID),
+        200, 0.0, 200000.0
+      ));
+      getStatistics().getHisto1D(Form("wls_%d_tot", wlsID))->GetXaxis()->SetTitle("TOT [ps]");
+      getStatistics().getHisto1D(Form("wls_%d_tot", wlsID))->GetYaxis()->SetTitle("Number of Mtx Signals");
 
-    for(auto pmID : mtx_p.second->getPMIDs()) {
-      if(pmID!=-1){
-        getStatistics().createHistogram(new TH1F(
-          Form("wls_%d_sipm_%d_tot", wlsID, pmID),
-          Form("ToT of signals SiPM %d on WLS ID %d", pmID, wlsID),
-          200, 0.0, 200000.0
-        ));
-        getStatistics().getHisto1D(Form("wls_%d_sipm_%d_tot", wlsID, pmID))->GetXaxis()->SetTitle("TOT [ps]");
-        getStatistics().getHisto1D(Form("wls_%d_sipm_%d_tot", wlsID, pmID))->GetYaxis()->SetTitle("Number of Signals");
+      for(auto pmID : mtx_p.second->getPMIDs()) {
+        if(pmID!=-1){
+          getStatistics().createHistogram(new TH1F(
+            Form("wls_%d_sipm_%d_tot", wlsID, pmID),
+            Form("ToT of signals SiPM %d on WLS ID %d", pmID, wlsID),
+            200, 0.0, 200000.0
+          ));
+          getStatistics().getHisto1D(Form("wls_%d_sipm_%d_tot", wlsID, pmID))->GetXaxis()->SetTitle("TOT [ps]");
+          getStatistics().getHisto1D(Form("wls_%d_sipm_%d_tot", wlsID, pmID))->GetYaxis()->SetTitle("Number of Signals");
+        }
       }
+    } else {
+      auto scinID = mtx_p.second->getScin().getID();
+      auto hName = Form("scin_%d_%s_tot", scinID, mtx_p.second->getType().c_str());
+      getStatistics().createHistogram(new TH1F(
+        hName, Form("ToT on Scin ID %d %s", scinID, mtx_p.second->getType().c_str()),
+        200, 0.0, 300000.0
+      ));
+      getStatistics().getHisto1D(hName)->GetXaxis()->SetTitle("TOT [ps]");
+      getStatistics().getHisto1D(hName)->GetYaxis()->SetTitle("Number of Mtx Signals");
     }
   }
 }

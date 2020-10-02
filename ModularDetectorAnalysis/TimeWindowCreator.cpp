@@ -90,7 +90,9 @@ bool TimeWindowCreator::exec()
 
       // Check if channel exists in database from loaded local json file
       if(getParamBank().getChannels().count(channelNumber) == 0) {
-        if (fSaveControlHistos) { getStatistics().getHisto1D("wrong_channel")->Fill(channelNumber); }
+        if (fSaveControlHistos) {
+          getStatistics().getHisto1D("wrong_channel")->Fill(channelNumber);
+        }
         continue;
       }
 
@@ -215,7 +217,7 @@ void TimeWindowCreator::initialiseHistograms(){
   getStatistics().getHisto1D("filter_LT_tdiff")->GetYaxis()->SetTitle("Number of LT pairs");
 
   getStatistics().createHistogram(new TH1F(
-    "filter_LL_PM", "Number of LL found on PMs", 111, 399.5, 510.5
+    "filter_LL_PM", "Number of LL found on PMs", maxPMID-minPMID+1, minPMID-0.5, maxPMID+0.5
   ));
   getStatistics().getHisto1D("filter_LL_PM")->GetXaxis()->SetTitle("PM ID");
   getStatistics().getHisto1D("filter_LL_PM")->GetYaxis()->SetTitle("Number of LL pairs");
@@ -227,7 +229,7 @@ void TimeWindowCreator::initialiseHistograms(){
   getStatistics().getHisto1D("filter_LL_THR")->GetYaxis()->SetTitle("Number of LL pairs");
 
   getStatistics().createHistogram(new TH1F(
-    "filter_LL_tdiff", "Time diff of LL pairs", 200, 0.0, 300000.0
+    "filter_LL_tdiff", "Time diff of LL pairs", 200, 0.0, 10000.0
   ));
   getStatistics().getHisto1D("filter_LL_tdiff")->GetXaxis()->SetTitle("Time Diff [ps]");
   getStatistics().getHisto1D("filter_LL_tdiff")->GetYaxis()->SetTitle("Number of LL pairs");
@@ -245,14 +247,14 @@ void TimeWindowCreator::initialiseHistograms(){
   getStatistics().getHisto1D("filter_TT_THR")->GetYaxis()->SetTitle("Number of TT pairs");
 
   getStatistics().createHistogram(new TH1F(
-    "filter_TT_tdiff", "Time diff of TT pairs", 200, 0.0, 300000.0
+    "filter_TT_tdiff", "Time diff of TT pairs", 200, 0.0, 10000.0
   ));
   getStatistics().getHisto1D("filter_TT_tdiff")->GetXaxis()->SetTitle("Time Diff [ps]");
   getStatistics().getHisto1D("filter_TT_tdiff")->GetYaxis()->SetTitle("Number of TT pairs");
 
   // Time differences of consecutive lead thr1 SigChs after filtering
   getStatistics().createHistogram(new TH1F(
-    "consec_lead_THR1", "Time diff of consecutive leadings THR1", 200, 0.0, 300000.0
+    "consec_lead_THR1", "Time diff of consecutive leadings THR1", 200, 0.0, 10000.0
   ));
   getStatistics().getHisto1D("consec_lead_THR1")->GetXaxis()->SetTitle("Time Diff [ps]");
   getStatistics().getHisto1D("consec_lead_THR1")->GetYaxis()->SetTitle("Number of SigCh pairs");

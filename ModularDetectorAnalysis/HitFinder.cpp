@@ -77,7 +77,7 @@ bool HitFinder::exec()
   if (auto timeWindow = dynamic_cast<const JPetTimeWindow* const>(fEvent)) {
     auto mappedSignals = HitFinderTools::getMappedSignals(timeWindow);
     auto allHits = HitFinderTools::matchAllSignals(
-      mappedSignals.first, mappedSignals.second, fABTimeDiff, getStatistics(), fSaveControlHistos
+      mappedSignals, fABTimeDiff, getStatistics(), fSaveControlHistos
     );
     saveHits(allHits);
   } else return false;
@@ -102,19 +102,21 @@ void HitFinder::saveHits(const std::vector<JPetHit>& hits)
       getStatistics().getHisto2D("time_diff_per_scin")->Fill(hit.getTimeDiff(), hit.getScin().getID());
       getStatistics().getHisto2D("hit_pos_XY")->Fill(hit.getPosY(), hit.getPosX());
       getStatistics().getHisto1D("hit_sig_multi")->Fill(multi);
-      getStatistics().getHisto1D("hit_sig_multi")->Fill(multi);
-
-      auto scinID = hit.getScin().getID();
-      if(scinID>=fMinScinID && scinID<=fMaxScinID){
-        getStatistics().getHisto1D(Form("hit_sig_multi_scin_%d", scinID))->Fill(multi);
-        getStatistics().getHisto1D(Form("hit_tdiff_scin_%d_m_%d", hit.getScin().getID(), ((int) multi)))
-        ->Fill(hit.getTimeDiff());
-        if(hit.getEnergy()!=0.0){
-          getStatistics().getHisto1D(Form("hit_tot_scin_%d_m_%d", hit.getScin().getID(), ((int) multi)))
-          ->Fill(hit.getEnergy()/((double) multi));
-        }
-        // stats.getHisto2D("hit_pos_per_scin")->Fill(hit.getPosZ(), hit.getScin().getID());
+      if(hit.getPosZ()!=-99.0){
+        getStatistics().getHisto1D("hit_pos_z_wls")->Fill(hit.getPosZ());
       }
+
+      // auto scinID = hit.getScin().getID();
+      // if(scinID>=fMinScinID && scinID<=fMaxScinID){
+      //   getStatistics().getHisto1D(Form("hit_sig_multi_scin_%d", scinID))->Fill(multi);
+      //   getStatistics().getHisto1D(Form("hit_tdiff_scin_%d_m_%d", hit.getScin().getID(), ((int) multi)))
+      //   ->Fill(hit.getTimeDiff());
+      //   if(hit.getEnergy()!=0.0){
+      //     getStatistics().getHisto1D(Form("hit_tot_scin_%d_m_%d", hit.getScin().getID(), ((int) multi)))
+      //     ->Fill(hit.getEnergy()/((double) multi));
+      //   }
+      //   // stats.getHisto2D("hit_pos_per_scin")->Fill(hit.getPosZ(), hit.getScin().getID());
+      // }
     }
 
   }
@@ -141,6 +143,12 @@ void HitFinder::initialiseHistograms(){
   ));
   getStatistics().getHisto2D("hit_pos_XY")->GetXaxis()->SetTitle("Y [cm]");
   getStatistics().getHisto2D("hit_pos_XY")->GetYaxis()->SetTitle("X [cm]");
+
+  getStatistics().createHistogram(new TH1F(
+    "hit_pos_z_wls", "Hit Z axis position based on WLS TOTs", 100, -25.0, 25.0
+  ));
+  getStatistics().getHisto1D("hit_pos_z_wls")->GetXaxis()->SetTitle("z [cm]");
+  getStatistics().getHisto1D("hit_pos_z_wls")->GetYaxis()->SetTitle("Number of Hits");
 
   // getStatistics().createHistogram(new TH2F(
   //   "hit_pos_per_scin", "Hit Position per Scintillator ID",
@@ -192,31 +200,31 @@ void HitFinder::initialiseHistograms(){
     }
   }
 
-  // Reference detector hits - signal B only
-  getStatistics().createHistogram(new TH1F(
-    "ref_hits_per_time_slot", "Number of Reference Detector Hits in Time Window", 40, -0.5, 40.5
-  ));
-  getStatistics().getHisto1D("ref_hits_per_time_slot")->GetXaxis()->SetTitle("Hits in Time Slot");
-  getStatistics().getHisto1D("ref_hits_per_time_slot")->GetYaxis()->SetTitle("Number of Time Slots");
+  // // Reference detector hits - signal B only
+  // getStatistics().createHistogram(new TH1F(
+  //   "ref_hits_per_time_slot", "Number of Reference Detector Hits in Time Window", 40, -0.5, 40.5
+  // ));
+  // getStatistics().getHisto1D("ref_hits_per_time_slot")->GetXaxis()->SetTitle("Hits in Time Slot");
+  // getStatistics().getHisto1D("ref_hits_per_time_slot")->GetYaxis()->SetTitle("Number of Time Slots");
 
-  getStatistics().createHistogram(new TH1F(
-    "ref_hit_signalB_tot", "RefDet hits TOT of signal B", 200, 0.0, 400000.0
-  ));
-  getStatistics().getHisto1D("ref_hit_signalB_tot")->GetXaxis()->SetTitle("TOT [ps]");
-  getStatistics().getHisto1D("ref_hit_signalB_tot")->GetYaxis()->SetTitle("Number of hits");
+  // getStatistics().createHistogram(new TH1F(
+  //   "ref_hit_signalB_tot", "RefDet hits TOT of signal B", 200, 0.0, 400000.0
+  // ));
+  // getStatistics().getHisto1D("ref_hit_signalB_tot")->GetXaxis()->SetTitle("TOT [ps]");
+  // getStatistics().getHisto1D("ref_hit_signalB_tot")->GetYaxis()->SetTitle("Number of hits");
 
   // Unused sigals stats
-  getStatistics().createHistogram(new TH1F(
-    "remain_signals_per_scin", "Number of Unused Signals in Scintillator",
-    fMaxScinID-fMinScinID+1, fMinScinID-0.5, fMaxScinID+0.5
-  ));
-  getStatistics().getHisto1D("remain_signals_per_scin")->GetXaxis()->SetTitle("ID of Scintillator");
-  getStatistics().getHisto1D("remain_signals_per_scin")->GetYaxis()->SetTitle("Number of Unused Signals in Scintillator");
+  // getStatistics().createHistogram(new TH1F(
+  //   "remain_signals_per_scin", "Number of Unused Signals in Scintillator",
+  //   fMaxScinID-fMinScinID+1, fMinScinID-0.5, fMaxScinID+0.5
+  // ));
+  // getStatistics().getHisto1D("remain_signals_per_scin")->GetXaxis()->SetTitle("ID of Scintillator");
+  // getStatistics().getHisto1D("remain_signals_per_scin")->GetYaxis()->SetTitle("Number of Unused Signals in Scintillator");
 
-  getStatistics().createHistogram(new TH1F(
-    "remain_signals_tdiff", "Time Diff of an unused signal and the consecutive one",
-    200, fABTimeDiff, 75000.0+fABTimeDiff
-  ));
-  getStatistics().getHisto1D("remain_signals_tdiff")->GetXaxis()->SetTitle("Time difference [ps]");
-  getStatistics().getHisto1D("remain_signals_tdiff")->GetYaxis()->SetTitle("Number of Signals");
+  // getStatistics().createHistogram(new TH1F(
+  //   "remain_signals_tdiff", "Time Diff of an unused signal and the consecutive one",
+  //   200, fABTimeDiff, 75000.0+fABTimeDiff
+  // ));
+  // getStatistics().getHisto1D("remain_signals_tdiff")->GetXaxis()->SetTitle("Time difference [ps]");
+  // getStatistics().getHisto1D("remain_signals_tdiff")->GetYaxis()->SetTitle("Number of Signals");
 }
