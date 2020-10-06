@@ -48,13 +48,13 @@ protected:
   void saveHits(const std::vector<JPetHit>& hits);
   void initialiseHistograms();
   const std::string kSaveControlHistosParamKey = "Save_Control_Histograms_bool";
-  const std::string kABTimeDiffParamKey = "HitFinder_ABTimeDiff_double";
+  const std::string kMinABTimeDiffParamKey = "HitFinder_MinABTimeDiff_double";
+  const std::string kMaxABTimeDiffParamKey = "HitFinder_MaxABTimeDiff_double";
   const std::string kMinScinIDParamKey = "Histo_MinScinID_int";
   const std::string kMaxScinIDParamKey = "Histo_MaxScinID_int";
   bool fSaveControlHistos = true;
-  double fABTimeDiff = 10000.0;
-  int fMinScinID = 0;
-  int fMaxScinID = 0;
+  double fMinABTimeDiff = 10000.0;
+  double fMaxABTimeDiff = 20000.0;
 };
 
 #endif /* !HITFINDER_H */

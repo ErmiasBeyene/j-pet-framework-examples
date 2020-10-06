@@ -47,65 +47,7 @@ SignalTransformerTools::getRawSigPMMap(const JPetTimeWindow* timeWindow)
 }
 
 /**
- * Method iterates over all matrices in the detector with signals,
- * calling merging procedure for each
- */
-// vector<JPetMatrixSignal> SignalTransformerTools::mergeScinSiPMSignals(
-//   map<int, vector<vector<JPetRawSignal>>>& rawSigMtxMap, double mergingTime,
-//   boost::property_tree::ptree& scinSync, JPetStatistics& stats, bool saveHistos
-// ) {
-//   vector<JPetMatrixSignal> allMtxSignals;
-//   // Iterating over whole map
-//   for (auto& rawSigScin : rawSigMtxMap) {
-//     if(rawSigScin.second.size()==0) { continue; }
-//     if(rawSigScin.second.at(0).size()==0) { continue; }
-//     auto scinID = rawSigScin.second.at(0).at(0).getPM().getScin().getID();
-//     // Getting offsets for this scintillator -
-//     // if calibrations are empty then default vaule is 0.0
-//     double offset = scinSync.get("scin_offsets."+to_string(scinID), 0.0);
-//
-//     for (auto& rawSigSide : rawSigScin.second){
-//       auto mtxSignals = mergeRawSignalsOnSide(rawSigSide, mergingTime, offset);
-//       allMtxSignals.insert(allMtxSignals.end(), mtxSignals.begin(), mtxSignals.end());
-//     }
-//   }
-
-  // for (auto& mtxSig : allMtxSignals) {
-  //
-  //   if(saveHistos){
-  //     if(mtxSig.getPM().getDesc()=="scin") {
-  //       auto scinID = mtxSig.getPM().getScin().getID();
-  //       // if(scinID<fMinScinID || scinID>fMaxScinID) { continue; }
-  //
-  //       stats.getHisto1D("mtxsig_multi")->Fill(mtxSig.getRawSignals().size());
-  //       if(mtxSig.getPM().getSide()==JPetPM::SideA){
-  //         stats.getHisto1D("mtxsig_per_scin_sideA")->Fill(scinID);
-  //       } else if(mtxSig.getPM().getSide()==JPetPM::SideB){
-  //         stats.getHisto1D("mtxsig_per_scin_sideB")->Fill(scinID);
-  //       }
-  //       auto rawSigVec = mtxSig.getRawSignals();
-  //       if(rawSigVec.size() == 4) {
-  //         auto side = rawSigVec.at(1).getPM().getSide();
-  //         auto pm1ID = rawSigVec.at(1).getPM().getID();
-  //         auto pm2ID = rawSigVec.at(2).getPM().getID();
-  //         auto pm3ID = rawSigVec.at(3).getPM().getID();
-  //         auto pm4ID = rawSigVec.at(4).getPM().getID();
-  //         auto t1 = SignalTransformerTools::getRawSigBaseTime(rawSigVec.at(1));
-  //         auto t2 = SignalTransformerTools::getRawSigBaseTime(rawSigVec.at(2));
-  //         auto t3 = SignalTransformerTools::getRawSigBaseTime(rawSigVec.at(3));
-  //         auto t4 = SignalTransformerTools::getRawSigBaseTime(rawSigVec.at(4));
-  //         stats.getHisto1D(Form("offset_sipm_%d", pm2ID))->Fill(t2-t1);
-  //         stats.getHisto1D(Form("offset_sipm_%d", pm3ID))->Fill(t3-t1);
-  //         stats.getHisto1D(Form("offset_sipm_%d", pm4ID))->Fill(t4-t1);
-  //       }
-  //     }
-  //   }
-  // }
-//   return allMtxSignals;
-// }
-
-/**
- * Method iterates over all WLSs and creates vestor of signals, that are assigned to it.
+ * Method iterates over all Matrices and creates vector of signals from SiPMs, that are assigned to it.
  * For each created vector, the merging method is called
  */
 vector<JPetMatrixSignal> SignalTransformerTools::mergeSignalsAllMtx(
@@ -137,10 +79,11 @@ vector<JPetMatrixSignal> SignalTransformerTools::mergeSignalsAllMtx(
 
         for(auto mtxSig : mergedSignals) {
 
-          auto wlsTOT = mtxSig.getTOT();
+          // TOT is averaged with number of signals
+          auto rawSignals = mtxSig.getRawSignals();
+          auto wlsTOT = mtxSig.getTOT()/rawSignals.size();
           stats.getHisto1D(Form("wls_%d_tot", wlsID))->Fill(wlsTOT);
 
-          auto rawSignals = mtxSig.getRawSignals();
           double sumWeights = 0.0;
           double sumPositions = 0.0;
 
@@ -164,7 +107,9 @@ vector<JPetMatrixSignal> SignalTransformerTools::mergeSignalsAllMtx(
       } else if(mtx_p.second->getType()=="SideA" || mtx_p.second->getType()=="SideB"){
         auto scinID = mtx_p.second->getScin().getID();
         for(auto mtxSig : mergedSignals) {
-          stats.getHisto1D(Form("scin_%d_%s_tot", scinID, mtx_p.second->getType().c_str()))->Fill(mtxSig.getTOT());
+          // TOT is averaged with number of signals
+          auto mtxTOT = mtxSig.getTOT()/mtxSig.getRawSignals().size();
+          stats.getHisto1D(Form("scin_%d_%s_tot", scinID, mtx_p.second->getType().c_str()))->Fill(mtxTOT);
         }
       }
 

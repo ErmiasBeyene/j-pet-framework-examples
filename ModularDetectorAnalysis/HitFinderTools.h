@@ -39,13 +39,12 @@ public:
 
   static std::vector<JPetHit> matchAllSignals(
     std::map<string, std::map<int, std::vector<JPetMatrixSignal>>>& signalSidesMap,
-    double timeDiffAB, JPetStatistics& stats, bool saveHistos
+    double minTimeDiffAB, double maxTimeDiffAB, JPetStatistics& stats, bool saveHistos
   );
 
   static std::vector<JPetHit> matchSignals(
-    std::vector<JPetMatrixSignal>& scinSignals,
-    std::vector<JPetMatrixSignal>& wlsSignals,
-    double timeDiffAB, JPetStatistics& stats, bool saveHistos
+    std::vector<JPetMatrixSignal>& scinSignals, std::vector<JPetMatrixSignal>& wlsSignals,
+    double minTimeDiffAB, double maxTimeDiffAB, JPetStatistics& stats, bool saveHistos
   );
 
   static JPetHit createHit(
@@ -54,6 +53,11 @@ public:
 
   static JPetHit createHit(
     const JPetMatrixSignal& signal1, const JPetMatrixSignal& signal2, const JPetMatrixSignal& signalWLS
+  );
+
+  static int matchWLSSignal(
+    std::vector<JPetMatrixSignal>& wlsSignals, double hitTime,
+    double minTimeDiffAB, double maxTimeDiffAB, JPetStatistics& stats, bool saveHistos
   );
 
   static JPetHit createDummyHit(const JPetMatrixSignal& signal);

@@ -111,33 +111,28 @@ void SignalFinder::saveRawSignals(const vector<JPetRawSignal>& rawSigVec)
   if(fSaveControlHistos){ getStatistics().getHisto1D("rawsig_tslot")->Fill(rawSigVec.size()); }
 
   for (auto & rawSig : rawSigVec) {
+
     auto leads = rawSig.getPoints(JPetSigCh::Leading, JPetRawSignal::ByThrValue);
     auto trails = rawSig.getPoints(JPetSigCh::Trailing, JPetRawSignal::ByThrValue);
-    if(!(leads.size()==kNumOfThresholds && trails.size()==kNumOfThresholds)) { continue; }
 
     // Saving only signals with lead-trail pair on threshold
+    if(!(leads.size()==kNumOfThresholds && trails.size()==kNumOfThresholds)) { continue; }
     fOutputEvents->add<JPetRawSignal>(rawSig);
 
     if(fSaveControlHistos){
 
-      // auto scinID = rawSig.getPM().getScin().getID();
       auto pmID = rawSig.getPM().getID();
+
       if(pmID<fMinPMID || pmID>fMaxPMID) { continue; }
 
-      double leadsDiff = leads.at(1).getTime()-leads.at(0).getTime();
-      double trailsDiff = trails.at(1).getTime()-trails.at(0).getTime();
-
-      double tot1 = trails.at(0).getTime()-leads.at(0).getTime();
-      double tot2 = trails.at(1).getTime()-leads.at(1).getTime();
-
-      getStatistics().getHisto1D(Form("tot_sipm_%d", pmID))->Fill((tot1+tot2)/2);
-      // getStatistics().getHisto1D(Form("lead_thr1_thr2_tdiff_sipm_%d", pmID))->Fill(leadsDiff);
-      // getStatistics().getHisto1D(Form("trail_thr1_thr2_tdiff_sipm_%d", pmID))->Fill(trailsDiff);
+      // Filling histo with average TOT (sum divided by number of thresholds (2))
+      getStatistics().getHisto1D(Form("tot_sipm_%d", pmID))->Fill(rawSig.getTOT()/kNumOfThresholds);
 
       if(rawSig.getPM().getPosition()>-99.0){
         getStatistics().getHisto1D("wls_sig_pos")->Fill(rawSig.getPM().getPosition());
       }
 
+      // Multiplicities and occupancies downscaled
       if(gRandom->Uniform()<fScalingFactor) {
         getStatistics().getHisto1D("rawsig_per_pm")->Fill(pmID);
         getStatistics().getHisto1D("rawsig_multi")->Fill(leads.size()+trails.size());
@@ -208,6 +203,7 @@ void SignalFinder::initialiseHistograms(){
   getStatistics().getHisto1D("wls_sig_pos")->GetXaxis()->SetTitle("SiPM position [cm]");
   getStatistics().getHisto1D("wls_sig_pos")->GetYaxis()->SetTitle("Number of Raw Signals");
 
+  // TOT spectra for each SiPM
   for(int pmID=fMinPMID; pmID<=fMaxPMID; pmID++){
     getStatistics().createHistogram(new TH1F(
       Form("tot_sipm_%d", pmID),
@@ -216,25 +212,5 @@ void SignalFinder::initialiseHistograms(){
     ));
     getStatistics().getHisto1D(Form("tot_sipm_%d", pmID))->GetXaxis()->SetTitle("TOT [ps]");
     getStatistics().getHisto1D(Form("tot_sipm_%d", pmID))->GetYaxis()->SetTitle("Number of Raw Signal");
-
-    // getStatistics().createHistogram(new TH1F(
-    //   Form("lead_thr1_thr2_tdiff_sipm_%d", pmID),
-    //   Form("Time Difference between leading Signal Channels THR1 and THR2 in found signals on SiPM ID %d", pmID),
-    //   200, -1.1*fSigChEdgeMaxTime, 1.1*fSigChEdgeMaxTime
-    // ));
-    // getStatistics().getHisto1D(Form("lead_thr1_thr2_tdiff_sipm_%d", pmID))
-    // ->GetXaxis()->SetTitle("time diff [ps]");
-    // getStatistics().getHisto1D(Form("lead_thr1_thr2_tdiff_sipm_%d", pmID))
-    // ->GetYaxis()->SetTitle("Number of Signal Channel Pairs");
-    //
-    // getStatistics().createHistogram(new TH1F(
-    //   Form("trail_thr1_thr2_tdiff_sipm_%d", pmID),
-    //   Form("Time Difference between trailing Signal Channels THR1 and THR2 in found signals on SiPM ID %d", pmID),
-    //   200, -2.0*fSigChEdgeMaxTime, 2.0*fSigChEdgeMaxTime
-    // ));
-    // getStatistics().getHisto1D(Form("trail_thr1_thr2_tdiff_sipm_%d", pmID))
-    // ->GetXaxis()->SetTitle("time diff [ps]");
-    // getStatistics().getHisto1D(Form("trail_thr1_thr2_tdiff_sipm_%d", pmID))
-    // ->GetYaxis()->SetTitle("Number of Signal Channel Pairs");
   }
 }
