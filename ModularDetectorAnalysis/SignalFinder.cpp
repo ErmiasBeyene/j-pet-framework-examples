@@ -108,7 +108,9 @@ bool SignalFinder::terminate()
  */
 void SignalFinder::saveRawSignals(const vector<JPetRawSignal>& rawSigVec)
 {
-  if(fSaveControlHistos){ getStatistics().getHisto1D("rawsig_tslot")->Fill(rawSigVec.size()); }
+  if(fSaveControlHistos && rawSigVec.size()>0) {
+    getStatistics().getHisto1D("rawsig_tslot")->Fill(rawSigVec.size());
+  }
 
   for (auto & rawSig : rawSigVec) {
 
@@ -191,7 +193,7 @@ void SignalFinder::initialiseHistograms(){
   getStatistics().getHisto1D("rawsig_multi")->GetYaxis()->SetTitle("Number of Signal Channels");
 
   getStatistics().createHistogram(new TH1F(
-    "rawsig_tslot", "Number of Raw Signals in Time Window", 50, -0.5, 50.5
+    "rawsig_tslot", "Number of Raw Signals in Time Window", 70, 0.5, 71.5
   ));
   getStatistics().getHisto1D("rawsig_tslot")->GetXaxis()->SetTitle("Number of Raw Signal in Time Window");
   getStatistics().getHisto1D("rawsig_tslot")->GetYaxis()->SetTitle("Number of Time Windows");

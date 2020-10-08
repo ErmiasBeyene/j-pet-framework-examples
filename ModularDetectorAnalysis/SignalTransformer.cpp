@@ -155,7 +155,7 @@ bool SignalTransformer::terminate()
 */
 void SignalTransformer::saveMatrixSignals(const std::vector<JPetMatrixSignal>& mtxSigVec)
 {
-  if(fSaveControlHistos){
+  if(fSaveControlHistos && mtxSigVec.size() > 0){
     getStatistics().getHisto1D("mtxsig_tslot")->Fill(mtxSigVec.size());
   }
 
@@ -170,7 +170,7 @@ void SignalTransformer::saveMatrixSignals(const std::vector<JPetMatrixSignal>& m
 void SignalTransformer::initialiseHistograms()
 {
   getStatistics().createHistogram(new TH1F(
-    "mtxsig_tslot", "Number of Matrix Signals in Time Window", 50, -0.5, 49.5
+    "mtxsig_tslot", "Number of Matrix Signals in Time Window", 50, 0.5, 51.5
   ));
   getStatistics().getHisto1D("mtxsig_tslot")->GetXaxis()->SetTitle("Number of Matrix Signal in Time Window");
   getStatistics().getHisto1D("mtxsig_tslot")->GetYaxis()->SetTitle("Number of Time Windows");

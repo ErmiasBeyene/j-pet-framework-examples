@@ -121,10 +121,10 @@ void HitFinder::saveHits(const std::vector<JPetHit>& hits)
 void HitFinder::initialiseHistograms(){
 
   getStatistics().createHistogram(new TH1F(
-    "hits_per_time_slot", "Number of Hits in Time Window", 40, -0.5, 40.5
+    "hits_tslot", "Number of Hits in Time Window", 30, 0.5, 31.5
   ));
-  getStatistics().getHisto1D("hits_per_time_slot")->GetXaxis()->SetTitle("Hits in Time Slot");
-  getStatistics().getHisto1D("hits_per_time_slot")->GetYaxis()->SetTitle("Number of Time Slots");
+  getStatistics().getHisto1D("hits_tslot")->GetXaxis()->SetTitle("Hits in Time Slot");
+  getStatistics().getHisto1D("hits_tslot")->GetYaxis()->SetTitle("Number of Time Slots");
 
   auto minScinID = getParamBank().getScins().begin()->first;
   auto maxScinID = getParamBank().getScins().rbegin()->first;
@@ -190,7 +190,7 @@ void HitFinder::initialiseHistograms(){
       getStatistics().createHistogram(new TH1F(
         Form("hit_tot_scin_%d_m_%d", scinID, multi),
         Form("Hit TOT divided by multiplicity, scin %d multi %d", scinID, multi),
-        200, 0.0, 400000.0
+        200, 0.0, 300000.0
       ));
       getStatistics().getHisto1D(Form("hit_tot_scin_%d_m_%d", scinID, multi))
       ->GetXaxis()->SetTitle("Time over Threshold [ps]");
@@ -199,19 +199,48 @@ void HitFinder::initialiseHistograms(){
     }
   }
 
+  // Time difference spectra - histograms upper limit is time window length
   getStatistics().createHistogram(new TH1F(
-    "rejected_pairs_time_diff", "Time Diff of two signals not in coincidence",
-    200, 0.0, 5*fMaxABTimeDiff
+    "ab_tdiff_all", "All time differences of two A-B signals",
+    200, 0.0, 50000000.0
   ));
-  getStatistics().getHisto1D("rejected_pairs_time_diff")->GetXaxis()->SetTitle("Time difference [ps]");
-  getStatistics().getHisto1D("rejected_pairs_time_diff")->GetYaxis()->SetTitle("Number of Signals");
+  getStatistics().getHisto1D("ab_tdiff_all")->GetXaxis()->SetTitle("Time difference [ps]");
+  getStatistics().getHisto1D("ab_tdiff_all")->GetYaxis()->SetTitle("Number of pairs");
 
   getStatistics().createHistogram(new TH1F(
-    "rejected_wls_time_diff", "Time Diff of hit and WLS signal not in conincidence",
-    200, 0.0, 5*fMaxABTimeDiff
+    "ab_tdiff_rej", "Time Diff of two signals not in coincidence",
+    200, 0.0, 50000000.0
   ));
-  getStatistics().getHisto1D("rejected_wls_time_diff")->GetXaxis()->SetTitle("Time difference [ps]");
-  getStatistics().getHisto1D("rejected_wls_time_diff")->GetYaxis()->SetTitle("Number of Signals");
+  getStatistics().getHisto1D("ab_tdiff_rej")->GetXaxis()->SetTitle("Time difference [ps]");
+  getStatistics().getHisto1D("ab_tdiff_rej")->GetYaxis()->SetTitle("Number of pairs");
+
+  getStatistics().createHistogram(new TH1F(
+    "ab_tdiff_acc", "Time Diff of two signals in coincidence",
+    200, 0.0, 50000000.0
+  ));
+  getStatistics().getHisto1D("ab_tdiff_acc")->GetXaxis()->SetTitle("Time difference [ps]");
+  getStatistics().getHisto1D("ab_tdiff_acc")->GetYaxis()->SetTitle("Number of pairs");
+
+  getStatistics().createHistogram(new TH1F(
+    "hit_wls_tdiff_all", "All time differences of hit and WLS signal",
+    200, 0.0, 50000000.0
+  ));
+  getStatistics().getHisto1D("hit_wls_tdiff_all")->GetXaxis()->SetTitle("Time difference [ps]");
+  getStatistics().getHisto1D("hit_wls_tdiff_all")->GetYaxis()->SetTitle("Number of pairs");
+
+  getStatistics().createHistogram(new TH1F(
+    "hit_wls_tdiff_rej", "Time differences of hit and WLS signal not in conincidece",
+    200, 0.0, 50000000.0
+  ));
+  getStatistics().getHisto1D("hit_wls_tdiff_rej")->GetXaxis()->SetTitle("Time difference [ps]");
+  getStatistics().getHisto1D("hit_wls_tdiff_rej")->GetYaxis()->SetTitle("Number of pairs");
+
+  getStatistics().createHistogram(new TH1F(
+    "hit_wls_tdiff_acc", "Time differences of hit and WLS signal not in conincidece",
+    200, 0.0, 50000000.0
+  ));
+  getStatistics().getHisto1D("hit_wls_tdiff_acc")->GetXaxis()->SetTitle("Time difference [ps]");
+  getStatistics().getHisto1D("hit_wls_tdiff_acc")->GetYaxis()->SetTitle("Number of pairs");
 
   // Unused sigals stats
   // getStatistics().createHistogram(new TH1F(

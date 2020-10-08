@@ -93,7 +93,7 @@ vector<JPetHit> HitFinderTools::matchAllSignals(
     allHits.insert(allHits.end(), hits.begin(), hits.end());
   }
   if (saveHistos) {
-    stats.getHisto1D("hits_per_time_slot")->Fill(allHits.size());
+    stats.getHisto1D("hits_tslot")->Fill(allHits.size());
   }
   return allHits;
 }
@@ -115,32 +115,36 @@ vector<JPetHit> HitFinderTools::matchSignals(
     if(i>=scinSignals.size()) { break; }
     for (unsigned int j = i+1; j < scinSignals.size(); j++) {
       if(j>=scinSignals.size()) { break; }
+      // Different sides condition
+      if (scinSignals.at(i).getMatrix().getType() == scinSignals.at(j).getMatrix().getType()) { continue; }
+
       // Time condition
       auto tDiff = scinSignals.at(j).getTime() - scinSignals.at(i).getTime();
+      if(saveHistos) { stats.getHisto1D("ab_tdiff_all")->Fill(tDiff); }
+
       if (tDiff > minTimeDiffAB && tDiff < maxTimeDiffAB) {
-        // Different sides condition
-        if (scinSignals.at(i).getMatrix().getType() != scinSignals.at(j).getMatrix().getType()) {
-          // Found A-B signals in conincidence
-          // If layer 1 (black module) - create AB Hit
-          auto layerID = scinSignals.at(i).getMatrix().getScin().getSlot().getLayer().getID();
-          if(layerID == 1){
+        // Found A-B signals in conincidence
+        if(saveHistos) { stats.getHisto1D("ab_tdiff_acc")->Fill(tDiff); }
+
+        // If layer 1 (black module) - create AB Hit
+        auto layerID = scinSignals.at(i).getMatrix().getScin().getSlot().getLayer().getID();
+        if(layerID == 1){
+          hits.push_back(createHit(scinSignals.at(i), scinSignals.at(j)));
+        }
+        // Layer 2 or 4 - Red Module, searching for WLS signals
+        if(layerID == 2 || layerID == 4) {
+          auto hitTime = (scinSignals.at(i).getTime()+scinSignals.at(j).getTime())/2.0;
+          auto wlsSigIndex = matchWLSSignal(wlsSignals, hitTime, minTimeDiffAB, maxTimeDiffAB, stats, saveHistos);
+          // Singal found if index different than -1
+          if(wlsSigIndex==-1){
             hits.push_back(createHit(scinSignals.at(i), scinSignals.at(j)));
-          }
-          // Layer 2 or 4 - Red Module, searching for WLS signals
-          if(layerID == 2 || layerID == 4){
-            auto hitTime = (scinSignals.at(i).getTime()+scinSignals.at(j).getTime())/2.0;
-            auto wlsSigIndex = matchWLSSignal(wlsSignals, hitTime, minTimeDiffAB, maxTimeDiffAB, stats, saveHistos);
-            // Singal found if index different than -1
-            if(wlsSigIndex==-1){
-              hits.push_back(createHit(scinSignals.at(i), scinSignals.at(j)));
-            } else {
-              hits.push_back(createHit(scinSignals.at(i), scinSignals.at(j), wlsSignals.at(wlsSigIndex)));
-              wlsSignals.erase(wlsSignals.begin() + wlsSigIndex);
-            }
+          } else {
+            hits.push_back(createHit(scinSignals.at(i), scinSignals.at(j), wlsSignals.at(wlsSigIndex)));
+            wlsSignals.erase(wlsSignals.begin() + wlsSigIndex);
           }
         }
       } else {
-        stats.getHisto1D("rejected_pairs_time_diff")->Fill(tDiff);
+        if(saveHistos) { stats.getHisto1D("ab_tdiff_rej")->Fill(tDiff); }
         i = j;
         break;
       }
@@ -158,10 +162,12 @@ int HitFinderTools::matchWLSSignal(
 ){
   for(unsigned int i = 0; i < wlsSignals.size(); i++){
     auto tDiff = fabs(hitTime-wlsSignals.at(i).getTime());
+    if(saveHistos) { stats.getHisto1D("hit_wls_tdiff_all")->Fill(tDiff); }
     if(tDiff > minTimeDiffAB && tDiff < maxTimeDiffAB) {
+      if(saveHistos) { stats.getHisto1D("hit_wls_tdiff_acc")->Fill(tDiff); }
       return i;
     } else {
-      if(saveHistos) { stats.getHisto1D("rejected_wls_time_diff")->Fill(tDiff); }
+      if(saveHistos) { stats.getHisto1D("hit_wls_tdiff_rej")->Fill(tDiff); }
     }
   }
   return -1;
