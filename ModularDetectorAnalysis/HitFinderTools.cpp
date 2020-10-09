@@ -115,14 +115,16 @@ vector<JPetHit> HitFinderTools::matchSignals(
     if(i>=scinSignals.size()) { break; }
     for (unsigned int j = i+1; j < scinSignals.size(); j++) {
       if(j>=scinSignals.size()) { break; }
-      // Different sides condition
-      if (scinSignals.at(i).getMatrix().getType() == scinSignals.at(j).getMatrix().getType()) { continue; }
 
-      // Time condition
       auto tDiff = scinSignals.at(j).getTime() - scinSignals.at(i).getTime();
       if(saveHistos) { stats.getHisto1D("ab_tdiff_all")->Fill(tDiff); }
 
+      // Time condition
       if (tDiff > minTimeDiffAB && tDiff < maxTimeDiffAB) {
+
+        // Different sides condition
+        if (scinSignals.at(i).getMatrix().getType() == scinSignals.at(j).getMatrix().getType()) { continue; }
+
         // Found A-B signals in conincidence
         if(saveHistos) { stats.getHisto1D("ab_tdiff_acc")->Fill(tDiff); }
 
@@ -131,6 +133,7 @@ vector<JPetHit> HitFinderTools::matchSignals(
         if(layerID == 1){
           hits.push_back(createHit(scinSignals.at(i), scinSignals.at(j)));
         }
+
         // Layer 2 or 4 - Red Module, searching for WLS signals
         if(layerID == 2 || layerID == 4) {
           auto hitTime = (scinSignals.at(i).getTime()+scinSignals.at(j).getTime())/2.0;
