@@ -110,11 +110,16 @@ vector<JPetHit> HitFinderTools::matchSignals(
   sortByTime(scinSignals);
   sortByTime(wlsSignals);
 
-  // Matching signals on sides
+  // Matching signals on sides of a scintillator
   for (unsigned int i = 0; i < scinSignals.size(); i++) {
     if(i>=scinSignals.size()) { break; }
     for (unsigned int j = i+1; j < scinSignals.size(); j++) {
       if(j>=scinSignals.size()) { break; }
+
+      // Different sides condition
+      if (scinSignals.at(i).getMatrix().getType() == scinSignals.at(j).getMatrix().getType()) {
+        continue;
+      }
 
       auto tDiff = scinSignals.at(j).getTime() - scinSignals.at(i).getTime();
       if(saveHistos) { stats.getHisto1D("ab_tdiff_all")->Fill(tDiff); }
@@ -122,15 +127,12 @@ vector<JPetHit> HitFinderTools::matchSignals(
       // Time condition
       if (tDiff > minTimeDiffAB && tDiff < maxTimeDiffAB) {
 
-        // Different sides condition
-        if (scinSignals.at(i).getMatrix().getType() == scinSignals.at(j).getMatrix().getType()) { continue; }
-
         // Found A-B signals in conincidence
         if(saveHistos) { stats.getHisto1D("ab_tdiff_acc")->Fill(tDiff); }
 
         // If layer 1 (black module) - create AB Hit
         auto layerID = scinSignals.at(i).getMatrix().getScin().getSlot().getLayer().getID();
-        if(layerID == 1){
+        if(layerID == 1) {
           hits.push_back(createHit(scinSignals.at(i), scinSignals.at(j)));
         }
 
@@ -146,11 +148,13 @@ vector<JPetHit> HitFinderTools::matchSignals(
             wlsSignals.erase(wlsSignals.begin() + wlsSigIndex);
           }
         }
+        i = j;
       } else {
         if(saveHistos) { stats.getHisto1D("ab_tdiff_rej")->Fill(tDiff); }
-        i = j;
-        break;
+        i = j-1;
       }
+      // i = j;
+      break;
     }
   }
   return hits;
@@ -160,13 +164,13 @@ vector<JPetHit> HitFinderTools::matchSignals(
  * Checking times of WLS signals if they mach with hit time in conincidence window
  */
 int HitFinderTools::matchWLSSignal(
-  std::vector<JPetMatrixSignal>& wlsSignals, double hitTime,
+  vector<JPetMatrixSignal>& wlsSignals, double hitTime,
   double minTimeDiffAB, double maxTimeDiffAB, JPetStatistics& stats, bool saveHistos
 ){
   for(unsigned int i = 0; i < wlsSignals.size(); i++){
     auto tDiff = fabs(hitTime-wlsSignals.at(i).getTime());
     if(saveHistos) { stats.getHisto1D("hit_wls_tdiff_all")->Fill(tDiff); }
-    if(tDiff > minTimeDiffAB && tDiff < maxTimeDiffAB) {
+    if(tDiff >= minTimeDiffAB && tDiff <= maxTimeDiffAB) {
       if(saveHistos) { stats.getHisto1D("hit_wls_tdiff_acc")->Fill(tDiff); }
       return i;
     } else {

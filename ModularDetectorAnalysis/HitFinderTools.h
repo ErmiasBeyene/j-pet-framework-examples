@@ -21,6 +21,7 @@
 #include <JPetTimeWindow/JPetTimeWindow.h>
 #include <JPetHit/JPetHit.h>
 #include <vector>
+#include <string>
 
 /**
  * @brief Tools set fot HitFinder module
@@ -34,11 +35,11 @@ class HitFinderTools
 public:
   static void sortByTime(std::vector<JPetMatrixSignal>& signals);
 
-  static std::map<string, std::map<int, std::vector<JPetMatrixSignal>>>
+  static std::map<std::string, std::map<int, std::vector<JPetMatrixSignal>>>
   getMappedSignals(const JPetTimeWindow* timeWindow);
 
   static std::vector<JPetHit> matchAllSignals(
-    std::map<string, std::map<int, std::vector<JPetMatrixSignal>>>& signalSidesMap,
+    std::map<std::string, std::map<int, std::vector<JPetMatrixSignal>>>& signalSidesMap,
     double minTimeDiffAB, double maxTimeDiffAB, JPetStatistics& stats, bool saveHistos
   );
 
