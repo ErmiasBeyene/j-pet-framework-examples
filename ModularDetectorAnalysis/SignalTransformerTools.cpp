@@ -75,9 +75,9 @@ vector<JPetMatrixSignal> SignalTransformerTools::mergeSignalsAllMtx(
     if(saveHistos){
       if(mtx_p.second->getType()=="WLS") {
         auto wlsID = mtx_p.second->getWLS().getID();
-        stats.getHisto1D("wls_sig_occ")->Fill(wlsID);
 
         for(auto mtxSig : mergedSignals) {
+          stats.getHisto1D("wls_sig_occ")->Fill(wlsID);
 
           // TOT is averaged with number of signals
           auto rawSignals = mtxSig.getRawSignals();

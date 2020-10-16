@@ -126,7 +126,7 @@ bool TimeWindowCreator::terminate()
 void TimeWindowCreator::saveSigChs(const vector<JPetSigCh>& sigChVec)
 {
   if(sigChVec.size()>0) {
-    if (fSaveControlHistos) { getStatistics().getHisto1D("sig_ch_per_time_slot")->Fill(sigChVec.size()); }
+    if (fSaveControlHistos) { getStatistics().getHisto1D("sigch_tslot")->Fill(sigChVec.size()); }
 
     double lastTime = 0.0;
     for (auto & sigCh : sigChVec) {
@@ -135,7 +135,6 @@ void TimeWindowCreator::saveSigChs(const vector<JPetSigCh>& sigChVec)
 
         if(gRandom->Uniform()<fScalingFactor){
           getStatistics().getHisto1D("channel_occ")->Fill(sigCh.getChannel().getID());
-          getStatistics().getHisto1D("channel_thrnum")->Fill(sigCh.getChannel().getThresholdNumber());
           getStatistics().getHisto1D("pm_occ")->Fill(sigCh.getChannel().getPM().getID());
 
           if(sigCh.getRecoFlag() == JPetSigCh::Good){
@@ -159,11 +158,11 @@ void TimeWindowCreator::saveSigChs(const vector<JPetSigCh>& sigChVec)
 void TimeWindowCreator::initialiseHistograms(){
 
   getStatistics().createHistogram(
-    new TH1F("sig_ch_per_time_slot", "Signal Channels Per Time Slot", 50, -0.5, 50.5)
+    new TH1F("sigch_tslot", "Signal Channels Per Time Slot", 50, -0.5, 50.5)
   );
-  getStatistics().getHisto1D("sig_ch_per_time_slot")
+  getStatistics().getHisto1D("sigch_tslot")
   ->GetXaxis()->SetTitle("Signal Channels in Time Slot");
-  getStatistics().getHisto1D("sig_ch_per_time_slot")
+  getStatistics().getHisto1D("sigch_tslot")
   ->GetYaxis()->SetTitle("Number of Time Slots");
 
   // Channels
@@ -184,12 +183,6 @@ void TimeWindowCreator::initialiseHistograms(){
   ));
   getStatistics().getHisto1D("channel_occ")->GetXaxis()->SetTitle("Channel ID");
   getStatistics().getHisto1D("channel_occ")->GetYaxis()->SetTitle("Number of SigCh");
-
-  getStatistics().createHistogram(
-    new TH1F("channel_thrnum", "Channels threshold numbers (downscaled)", 4, 0.5, 4.5)
-  );
-  getStatistics().getHisto1D("channel_thrnum")->GetXaxis()->SetTitle("Channel Threshold Number");
-  getStatistics().getHisto1D("channel_thrnum")->GetYaxis()->SetTitle("Number of SigCh");
 
   // SiPMs
   auto minPMID = getParamBank().getPMs().begin()->first;

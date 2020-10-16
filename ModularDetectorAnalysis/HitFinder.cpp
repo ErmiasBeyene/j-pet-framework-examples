@@ -216,7 +216,7 @@ void HitFinder::initialiseHistograms(){
 
   getStatistics().createHistogram(new TH1F(
     "ab_tdiff_acc", "Time Diff of two signals in coincidence",
-    200, 0.0, 50000000.0
+    200, fMinABTimeDiff, fMaxABTimeDiff
   ));
   getStatistics().getHisto1D("ab_tdiff_acc")->GetXaxis()->SetTitle("Time difference [ps]");
   getStatistics().getHisto1D("ab_tdiff_acc")->GetYaxis()->SetTitle("Number of pairs");
@@ -237,7 +237,7 @@ void HitFinder::initialiseHistograms(){
 
   getStatistics().createHistogram(new TH1F(
     "hit_wls_tdiff_acc", "Time differences of hit and WLS signal not in conincidece",
-    200, 0.0, 50000000.0
+    200, fMinABTimeDiff, fMaxABTimeDiff
   ));
   getStatistics().getHisto1D("hit_wls_tdiff_acc")->GetXaxis()->SetTitle("Time difference [ps]");
   getStatistics().getHisto1D("hit_wls_tdiff_acc")->GetYaxis()->SetTitle("Number of pairs");
