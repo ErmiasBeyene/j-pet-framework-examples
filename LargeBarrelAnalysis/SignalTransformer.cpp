@@ -202,12 +202,22 @@ JPetPhysSignal SignalTransformer::createPhysSignal(const JPetRecoSignal& recoSig
 
   if (fSaveControlHistos)
   {
-    getStatistics().fillHistogram("phys_sig_tot_pm_simple", physSignal.getPM().getID(),
-                                  HitFinderTools::calculateSignalTOT(physSignal, HitFinderTools::kSimplified));
-    getStatistics().fillHistogram("phys_sig_tot_pm_rectangular", physSignal.getPM().getID(),
-                                  HitFinderTools::calculateSignalTOT(physSignal, HitFinderTools::kThresholdRectangular));
-    getStatistics().fillHistogram("phys_sig_tot_pm_trapeze", physSignal.getPM().getID(),
-                                  HitFinderTools::calculateSignalTOT(physSignal, HitFinderTools::kThresholdTrapeze));
+    auto tot1 = HitFinderTools::calculateSignalTOT(physSignal, HitFinderTools::kSimplified);
+    auto tot2 = HitFinderTools::calculateSignalTOT(physSignal, HitFinderTools::kThresholdRectangular);
+    auto tot3 = HitFinderTools::calculateSignalTOT(physSignal, HitFinderTools::kThresholdTrapeze);
+
+    if (tot1 > 0.0)
+    {
+      getStatistics().fillHistogram("phys_sig_tot_pm_simple", physSignal.getPM().getID(), tot1);
+    }
+    if (tot2 > 0.0)
+    {
+      getStatistics().fillHistogram("phys_sig_tot_pm_rectangular", physSignal.getPM().getID(), tot2);
+    }
+    if (tot3 > 0.0)
+    {
+      getStatistics().fillHistogram("phys_sig_tot_pm_trapeze", physSignal.getPM().getID(), tot3);
+    }
   }
 
   return physSignal;
@@ -287,14 +297,14 @@ void SignalTransformer::initialiseHistograms()
   auto maxPMID = getParamBank().getPMs().rbegin()->first;
 
   getStatistics().createHistogramWithAxes(new TH2D("phys_sig_tot_pm_simple", "TOT of created signals, calculated with simplified method",
-                                                   maxPMID - minPMID + 1, minPMID - 0.5, maxPMID + 0.5, 200, 0.0, 200000.0),
+                                                   maxPMID - minPMID + 1, minPMID - 0.5, maxPMID + 0.5, 200, 0.0, 50000.0),
                                           "PM ID", "Signal TOT [ps]");
 
   getStatistics().createHistogramWithAxes(new TH2D("phys_sig_tot_pm_rectangular", "TOT of created signals, calculated with rectangular method",
-                                                   maxPMID - minPMID + 1, minPMID - 0.5, maxPMID + 0.5, 200, 0.0, 200000.0),
+                                                   maxPMID - minPMID + 1, minPMID - 0.5, maxPMID + 0.5, 200, 0.0, 50000.0),
                                           "PM ID", "Signal TOT [ps]");
 
   getStatistics().createHistogramWithAxes(new TH2D("phys_sig_tot_pm_trapeze", "TOT of created signals, calculated with trapeze method",
-                                                   maxPMID - minPMID + 1, minPMID - 0.5, maxPMID + 0.5, 200, 0.0, 200000.0),
+                                                   maxPMID - minPMID + 1, minPMID - 0.5, maxPMID + 0.5, 200, 0.0, 50000.0),
                                           "PM ID", "Signal TOT [ps]");
 }

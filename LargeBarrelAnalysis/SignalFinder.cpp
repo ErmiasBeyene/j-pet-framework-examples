@@ -39,7 +39,7 @@ bool SignalFinder::init()
   // Time window parameter for leading edge
   if (isOptionSet(fParams.getOptions(), kEdgeMaxTimeParamKey))
   {
-    fSigChEdgeMaxTime = getOptionAsFloat(fParams.getOptions(), kEdgeMaxTimeParamKey);
+    fSigChEdgeMaxTime = getOptionAsDouble(fParams.getOptions(), kEdgeMaxTimeParamKey);
   }
   else
   {
@@ -49,7 +49,7 @@ bool SignalFinder::init()
   // Time window parameter for leading-trailing comparison
   if (isOptionSet(fParams.getOptions(), kLeadTrailMaxTimeParamKey))
   {
-    fSigChLeadTrailMaxTime = getOptionAsFloat(fParams.getOptions(), kLeadTrailMaxTimeParamKey);
+    fSigChLeadTrailMaxTime = getOptionAsDouble(fParams.getOptions(), kLeadTrailMaxTimeParamKey);
   }
   else
   {
@@ -155,8 +155,12 @@ void SignalFinder::saveRawSignals(const vector<JPetRawSignal>& rawSigVec)
 
           for (int thr_j = 0; thr_j < leads.size() && thr_j < trails.size(); ++thr_j)
           {
+            if (thr_j == thr_i)
+            {
+              continue;
+            }
             double tdiff = leads.at(thr_j).getValue() - leads.at(thr_i).getValue();
-            getStatistics().fillHistogram(Form("thr_tdiff_%d_%d_pm", thr_j + 1, thr_i + 1), pmID, tdiff);
+            getStatistics().fillHistogram(Form("thr_tdiff_%d_%d_pm", max(thr_j + 1, thr_i + 1), min(thr_j + 1, thr_i + 1)), pmID, tdiff);
           }
         }
       }

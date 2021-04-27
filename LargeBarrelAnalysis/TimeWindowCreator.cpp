@@ -13,16 +13,19 @@
  *  @file TimeWindowCreator.cpp
  */
 
-#include "TimeWindowCreator.h"
+#include <boost/property_tree/json_parser.hpp>
+
 #include "EventIII.h"
 #include "JPetGeomMapping/JPetGeomMapping.h"
 #include "JPetOptionsTools/JPetOptionsTools.h"
 #include "JPetWriter/JPetWriter.h"
+#include "TimeWindowCreator.h"
 #include "TimeWindowCreatorTools.h"
 #include "UniversalFileLoader.h"
 
 using namespace jpet_options_tools;
 using namespace std;
+namespace pt = boost::property_tree;
 
 TimeWindowCreator::TimeWindowCreator(const char* name) : JPetUserTask(name) {}
 
@@ -37,7 +40,7 @@ bool TimeWindowCreator::init()
   // Min allowed signal time
   if (isOptionSet(fParams.getOptions(), kMinTimeParamKey))
   {
-    fMinTime = getOptionAsFloat(fParams.getOptions(), kMinTimeParamKey);
+    fMinTime = getOptionAsDouble(fParams.getOptions(), kMinTimeParamKey);
   }
   else
   {
@@ -48,7 +51,7 @@ bool TimeWindowCreator::init()
   // Max allowed signal time
   if (isOptionSet(fParams.getOptions(), kMaxTimeParamKey))
   {
-    fMaxTime = getOptionAsFloat(fParams.getOptions(), kMaxTimeParamKey);
+    fMaxTime = getOptionAsDouble(fParams.getOptions(), kMaxTimeParamKey);
   }
   else
   {
@@ -66,18 +69,26 @@ bool TimeWindowCreator::init()
   {
     WARNING("No path to the time calibration file was provided in user options.");
   }
+
   // Getting threshold values file from user options
   auto thresholdFile = string("dummyCalibration.txt");
   if (isOptionSet(fParams.getOptions(), kThresholdFileParamKey))
   {
     thresholdFile = getOptionAsString(fParams.getOptions(), kThresholdFileParamKey);
-    fSetTHRValuesFromChannels = false;
+    fSetThresholdValuesFromChannels = false;
   }
   else
   {
     WARNING("No path to the file with threshold values was provided in user "
             "options.");
   }
+
+  // Reading file with threshold offsets to property tree
+  if (isOptionSet(fParams.getOptions(), kThresholdOffsetsParamKey))
+  {
+    pt::read_json(getOptionAsString(fParams.getOptions(), kThresholdOffsetsParamKey), fThresholdOffsetsTree);
+  }
+
   // Getting bool for saving histograms
   if (isOptionSet(fParams.getOptions(), kSaveControlHistosParamKey))
   {
@@ -174,8 +185,8 @@ bool TimeWindowCreator::exec()
       }
 
       // Building Signal Channels for this TOMB Channel
-      auto allSigChs = TimeWindowCreatorTools::buildSigChs(tdcChannel, tombChannel, fTimeCalibration, fThresholds, fMaxTime, fMinTime,
-                                                           fSetTHRValuesFromChannels, getStatistics(), fSaveControlHistos);
+      auto allSigChs = TimeWindowCreatorTools::buildSigChs(tdcChannel, tombChannel, fTimeCalibration, fThresholds, fThresholdOffsetsTree, fMaxTime,
+                                                           fMinTime, fSetThresholdValuesFromChannels, getStatistics(), fSaveControlHistos);
 
       // Sort Signal Channels in time
       TimeWindowCreatorTools::sortByValue(allSigChs);
@@ -244,18 +255,18 @@ void TimeWindowCreator::initialiseHistograms()
   auto minPMID = getParamBank().getPMs().begin()->first;
   auto maxPMID = getParamBank().getPMs().rbegin()->first;
 
-  getStatistics().createHistogramWithAxes(new TH1D("LT_time_diff", "LT time diff - channel TOT", 200, 0.0, 50000.0), "Time Diff [ps]",
+  getStatistics().createHistogramWithAxes(new TH1D("LT_time_diff", "LT time diff - channel TOT", 200, 0.0, 100000.0), "Time Diff [ps]",
                                           "Number of LL pairs");
   getStatistics().createHistogramWithAxes(new TH1D("LL_per_PM", "Number of LL found on PMs", maxPMID - minPMID + 1, minPMID - 0.5, maxPMID + 0.5),
                                           "PM ID", "Number of LL pairs");
   getStatistics().createHistogramWithAxes(new TH1D("LL_per_THR", "Number of found LL on Thresolds", kNumOfThresholds, 0.5, kNumOfThresholds + 0.5),
                                           "THR Number", "Number of LL pairs");
-  getStatistics().createHistogramWithAxes(new TH1D("LL_time_diff", "Time diff of LL pairs", 200, 0.0, 50000.0), "Time Diff [ps]",
+  getStatistics().createHistogramWithAxes(new TH1D("LL_time_diff", "Time diff of LL pairs", 200, 0.0, 100000.0), "Time Diff [ps]",
                                           "Number of LL pairs");
   getStatistics().createHistogramWithAxes(new TH1D("TT_per_PM", "Number of TT found on PMs", maxPMID - minPMID + 1, minPMID - 0.5, maxPMID + 0.5),
                                           "PM ID", "Number of TT pairs");
   getStatistics().createHistogramWithAxes(new TH1D("TT_per_THR", "Number of found TT on Thresolds", kNumOfThresholds, 0.5, kNumOfThresholds + 0.5),
                                           "THR Number", "Number of TT pairs");
-  getStatistics().createHistogramWithAxes(new TH1D("TT_time_diff", "Time diff of TT pairs", 200, 0.0, 50000.0), "Time Diff [ps]",
+  getStatistics().createHistogramWithAxes(new TH1D("TT_time_diff", "Time diff of TT pairs", 200, 0.0, 100000.0), "Time Diff [ps]",
                                           "Number of TT pairs");
 }

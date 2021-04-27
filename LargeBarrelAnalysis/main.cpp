@@ -1,5 +1,5 @@
 /**
- *  @copyright Copyright 2020 The J-PET Framework Authors. All rights reserved.
+ *  @copyright Copyright 2021 The J-PET Framework Authors. All rights reserved.
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may find a copy of the License in the LICENCE file.
@@ -14,17 +14,20 @@
  */
 
 #include <JPetManager/JPetManager.h>
-#include "TimeWindowCreator.h"
-#include "SignalTransformer.h"
+
 #include "EventCategorizer.h"
-#include "SignalFinder.h"
 #include "EventFinder.h"
 #include "HitFinder.h"
+#include "SignalFinder.h"
+#include "SignalTransformer.h"
+#include "TimeWindowCreator.h"
 
 using namespace std;
 
-int main(int argc, const char* argv[]) {
-  try {
+int main(int argc, const char* argv[])
+{
+  try
+  {
     JPetManager& manager = JPetManager::getManager();
 
     manager.registerTask<TimeWindowCreator>("TimeWindowCreator");
@@ -42,7 +45,9 @@ int main(int argc, const char* argv[]) {
     manager.useTask("EventCategorizer", "unk.evt", "cat.evt");
 
     manager.run(argc, argv);
-  } catch (const std::exception& except) {
+  }
+  catch (const std::exception& except)
+  {
     std::cerr << "Unrecoverable error occured:" << except.what() << "Exiting the program!" << std::endl;
     return EXIT_FAILURE;
   }

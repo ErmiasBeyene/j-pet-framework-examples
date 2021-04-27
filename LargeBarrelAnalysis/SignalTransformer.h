@@ -48,8 +48,8 @@ protected:
 	void correctForWalk(const JPetRecoSignal& recoSignal);
 	const std::string kUseCorruptedSignalsParamKey = "SignalTransformer_UseCorruptedSignals_bool";
 	const std::string kSaveControlHistosParamKey = "Save_Control_Histograms_bool";
-	const std::string kWalkCorrConst1ParamKey = "SignalTransformer_WalkCorrConstThr1_float";
-	const std::string kWalkCorrConst2ParamKey = "SignalTransformer_WalkCorrConstThr2_float";
+  const std::string kWalkCorrConst1ParamKey = "SignalTransformer_WalkCorrConstThr1_float";
+  const std::string kWalkCorrConst2ParamKey = "SignalTransformer_WalkCorrConstThr2_float";
         const std::string kWalkCorrConst3ParamKey = "SignalTransformer_WalkCorrConstThr3_float";
 	const std::string kWalkCorrConst4ParamKey = "SignalTransformer_WalkCorrConstThr4_float";
 	bool fUseCorruptedSignals = false;

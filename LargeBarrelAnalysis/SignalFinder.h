@@ -47,9 +47,9 @@ protected:
   SignalFinderTools::ThresholdOrderings fThresholdOrderings;
   void saveRawSignals(const std::vector<JPetRawSignal>& sigChVec);
   const std::string kUseCorruptedSigChParamKey = "SignalFinder_UseCorruptedSigCh_bool";
-  const std::string kLeadTrailMaxTimeParamKey = "SignalFinder_LeadTrailMaxTime_float";
+  const std::string kLeadTrailMaxTimeParamKey = "SignalFinder_LeadTrailMaxTime_double";
   const std::string kSaveControlHistosParamKey = "Save_Control_Histograms_bool";
-  const std::string kEdgeMaxTimeParamKey = "SignalFinder_EdgeMaxTime_float";
+  const std::string kEdgeMaxTimeParamKey = "SignalFinder_EdgeMaxTime_double";
   const std::string kRefPMIDParamKey = "TimeCalibration_RefPMID_int";
   const std::string kOrderThresholdsByValueKey = "SignalFinder_OrderThresholdsByValue_bool";
   const int kNumOfThresholds = 4;

@@ -19,14 +19,13 @@
 #include <JPetTOMBChannel/JPetTOMBChannel.h>
 #include <JPetTimeWindow/JPetTimeWindow.h>
 #include <JPetUserTask/JPetUserTask.h>
+
+#include <boost/property_tree/ptree.hpp>
+
 #include <map>
 #include <set>
 
 class JPetWriter;
-
-#ifdef __CINT__
-#define override
-#endif
 
 /**
  * @brief User Task: translate Unpacker EventIII data to JPetTimeWindow
@@ -52,14 +51,16 @@ protected:
   void initialiseHistograms();
   const std::string kTimeCalibFileParamKey = "TimeCalibLoader_ConfigFile_std::string";
   const std::string kThresholdFileParamKey = "ThresholdLoader_ConfigFile_std::string";
+  const std::string kThresholdOffsetsParamKey = "ThresholdOffsets_JSONFile_std::string";
   const std::string kSaveControlHistosParamKey = "Save_Control_Histograms_bool";
-  const std::string kMaxTimeParamKey = "TimeWindowCreator_MaxTime_float";
-  const std::string kMinTimeParamKey = "TimeWindowCreator_MinTime_float";
+  const std::string kMaxTimeParamKey = "TimeWindowCreator_MaxTime_double";
+  const std::string kMinTimeParamKey = "TimeWindowCreator_MinTime_double";
   const std::string kMainStripKey = "TimeWindowCreator_MainStrip_int";
   const int kNumOfThresholds = 4;
   std::map<unsigned int, std::vector<double>> fTimeCalibration;
   std::map<unsigned int, std::vector<double>> fThresholds;
-  bool fSetTHRValuesFromChannels = true;
+  boost::property_tree::ptree fThresholdOffsetsTree;
+  bool fSetThresholdValuesFromChannels = true;
   long long int fCurrEventNumber = 0;
   std::set<int> fAllowedChannels;
   bool fSaveControlHistos = true;

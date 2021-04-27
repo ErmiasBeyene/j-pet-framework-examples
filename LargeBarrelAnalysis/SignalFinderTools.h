@@ -36,7 +36,7 @@ class SignalFinderTools
 {
 public:
   static const unsigned short kNumberOfThresholds = 4;
-  using ThresholdValues = std::array<float, kNumberOfThresholds>;
+  using ThresholdValues = std::array<double, kNumberOfThresholds>;
   using PMid = unsigned int;
   using Permutation = std::array<unsigned int, SignalFinderTools::kNumberOfThresholds>;
   using ThresholdOrderings = std::map<PMid, Permutation>;
