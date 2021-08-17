@@ -22,24 +22,28 @@ using namespace std;
  * Returns map< scin ID, side < signals >>.
  * Side A is the first element int he vector, Side B is the second one.
  */
-const map<int, vector<JPetRawSignal>>
-SignalTransformerTools::getRawSigPMMap(const JPetTimeWindow* timeWindow)
+const map<int, vector<JPetRawSignal>> SignalTransformerTools::getRawSigPMMap(const JPetTimeWindow* timeWindow)
 {
   map<int, vector<JPetRawSignal>> rawSigPMMap;
-  if (!timeWindow) {
+  if (!timeWindow)
+  {
     WARNING("Pointer of Time Window object is not set, returning empty map");
     return rawSigPMMap;
   }
 
   const unsigned int nRawSigs = timeWindow->getNumberOfEvents();
-  for (unsigned int i = 0; i < nRawSigs; i++) {
+  for (unsigned int i = 0; i < nRawSigs; i++)
+  {
     auto rawSig = dynamic_cast<const JPetRawSignal&>(timeWindow->operator[](i));
     auto search = rawSigPMMap.find(rawSig.getPM().getID());
-    if (search == rawSigPMMap.end()) {
+    if (search == rawSigPMMap.end())
+    {
       vector<JPetRawSignal> tmpVec;
       tmpVec.push_back(rawSig);
       rawSigPMMap[rawSig.getPM().getID()] = tmpVec;
-    } else {
+    }
+    else
+    {
       search->second.push_back(rawSig);
     }
   }
@@ -50,21 +54,26 @@ SignalTransformerTools::getRawSigPMMap(const JPetTimeWindow* timeWindow)
  * Method iterates over all Matrices and creates vector of signals from SiPMs, that are assigned to it.
  * For each created vector, the merging method is called
  */
-vector<JPetMatrixSignal> SignalTransformerTools::mergeSignalsAllMtx(
-  const JPetParamBank& paramBank, map<int, vector<JPetRawSignal>>& rawSigPMMap,
-  double mergingTime, JPetStatistics& stats, bool saveHistos
-) {
+vector<JPetMatrixSignal> SignalTransformerTools::mergeSignalsAllMtx(const JPetParamBank& paramBank, map<int, vector<JPetRawSignal>>& rawSigPMMap,
+                                                                    double mergingTime, JPetStatistics& stats, bool saveHistos)
+{
   vector<JPetMatrixSignal> allMtxSignals;
 
-  for(auto& mtx_p : paramBank.getMatrices()) {
+  for (auto& mtx_p : paramBank.getMatrices())
+  {
     auto mtxID = mtx_p.second->getID();
     auto pmIDs = mtx_p.second->getPMIDs();
 
     vector<JPetRawSignal> signals;
-    for(auto pmID : pmIDs) {
-      if(pmID==-1) { continue; }
+    for (auto pmID : pmIDs)
+    {
+      if (pmID == -1)
+      {
+        continue;
+      }
       auto search = rawSigPMMap.find(pmID);
-      if(search != rawSigPMMap.end()){
+      if (search != rawSigPMMap.end())
+      {
         signals.insert(signals.end(), rawSigPMMap.at(pmID).begin(), rawSigPMMap.at(pmID).end());
       }
     }
@@ -72,22 +81,26 @@ vector<JPetMatrixSignal> SignalTransformerTools::mergeSignalsAllMtx(
     auto mergedSignals = SignalTransformerTools::mergeSignalsMtx(signals, mergingTime, 0.0, paramBank.getMatrix(mtxID));
     allMtxSignals.insert(allMtxSignals.end(), mergedSignals.begin(), mergedSignals.end());
 
-    if(saveHistos){
-      if(mtx_p.second->getType()=="WLS") {
+    if (saveHistos)
+    {
+      if (mtx_p.second->getType() == "WLS")
+      {
         auto wlsID = mtx_p.second->getWLS().getID();
 
-        for(auto mtxSig : mergedSignals) {
+        for (auto mtxSig : mergedSignals)
+        {
           stats.getHisto1D("wls_sig_occ")->Fill(wlsID);
 
           // TOT is averaged with number of signals
           auto rawSignals = mtxSig.getRawSignals();
-          auto wlsTOT = mtxSig.getTOT()/rawSignals.size();
-          stats.getHisto1D(Form("wls_%d_tot", wlsID))->Fill(wlsTOT);
+          auto wlsTOT = mtxSig.getTOT() / rawSignals.size();
+          stats.getHisto2D("wls_tot")->Fill(wlsID, wlsTOT);
 
           double sumWeights = 0.0;
           double sumPositions = 0.0;
 
-          for(auto rawSignal : rawSignals){
+          for (auto rawSignal : rawSignals)
+          {
             // filling histos
             auto pmID = rawSignal.second.getPM().getID();
             auto zPos = rawSignal.second.getPM().getPosition();
@@ -95,24 +108,26 @@ vector<JPetMatrixSignal> SignalTransformerTools::mergeSignalsAllMtx(
             stats.getHisto1D(Form("wls_%d_sipm_%d_tot", wlsID, pmID))->Fill(partToT);
 
             // calculating sum with weights
-            sumPositions += zPos*partToT/wlsTOT;
-            sumWeights += partToT/wlsTOT;
+            sumPositions += zPos * partToT / wlsTOT;
+            sumWeights += partToT / wlsTOT;
           }
 
-          if(sumWeights!=0.0){
-            stats.getHisto1D("wls_sig_z_pos")->Fill(sumPositions/sumWeights);
+          if (sumWeights != 0.0)
+          {
+            stats.getHisto1D("wls_sig_z_pos")->Fill(sumPositions / sumWeights);
           }
         }
-
-      } else if(mtx_p.second->getType()=="SideA" || mtx_p.second->getType()=="SideB"){
+      }
+      else if (mtx_p.second->getType() == "SideA" || mtx_p.second->getType() == "SideB")
+      {
         auto scinID = mtx_p.second->getScin().getID();
-        for(auto mtxSig : mergedSignals) {
+        for (auto mtxSig : mergedSignals)
+        {
           // TOT is averaged with number of signals
-          auto mtxTOT = mtxSig.getTOT()/mtxSig.getRawSignals().size();
+          auto mtxTOT = mtxSig.getTOT() / mtxSig.getRawSignals().size();
           stats.getHisto1D(Form("scin_%d_%s_tot", scinID, mtx_p.second->getType().c_str()))->Fill(mtxTOT);
         }
       }
-
     }
   }
 
@@ -123,48 +138,56 @@ vector<JPetMatrixSignal> SignalTransformerTools::mergeSignalsAllMtx(
  * Method iterates over all Raw Sigals on some SiPMs on the same matrix,
  * matching them into groups on max. 4 as a MatrixSignal
  */
-vector<JPetMatrixSignal> SignalTransformerTools::mergeSignalsMtx(
-  vector<JPetRawSignal>& rawSigVec, double mergingTime, double offset, const JPetMatrix& matrix
-) {
+vector<JPetMatrixSignal> SignalTransformerTools::mergeSignalsMtx(vector<JPetRawSignal>& rawSigVec, double mergingTime, double offset,
+                                                                 const JPetMatrix& matrix)
+{
   vector<JPetMatrixSignal> mtxSigVec;
   sortByTime(rawSigVec);
 
-  while (rawSigVec.size() > 0) {
+  while (rawSigVec.size() > 0)
+  {
     // Create Matrix Signal and add first Raw Signal by default
     JPetMatrixSignal mtxSig;
     mtxSig.setMatrix(matrix);
 
-    if(!mtxSig.addRawSignal(rawSigVec.at(0))){
+    if (!mtxSig.addRawSignal(rawSigVec.at(0)))
+    {
       ERROR("Problem with adding the first signal to new object.");
       break;
     }
 
     unsigned int nextIndex = 1;
-    while(true){
+    while (true)
+    {
 
-      if(rawSigVec.size() <= nextIndex){
+      if (rawSigVec.size() <= nextIndex)
+      {
         // nothing left to check
         break;
       }
 
       // signal matching condidion
-      if(fabs(getRawSigBaseTime(rawSigVec.at(nextIndex))
-        -getRawSigBaseTime(rawSigVec.at(0))) < mergingTime
-      ){
+      if (fabs(getRawSigBaseTime(rawSigVec.at(nextIndex)) - getRawSigBaseTime(rawSigVec.at(0))) < mergingTime)
+      {
         // mathing signal found
-        if(mtxSig.addRawSignal(rawSigVec.at(nextIndex))){
+        if (mtxSig.addRawSignal(rawSigVec.at(nextIndex)))
+        {
           // added succesfully
-          rawSigVec.erase(rawSigVec.begin()+nextIndex);
-        } else {
+          rawSigVec.erase(rawSigVec.begin() + nextIndex);
+        }
+        else
+        {
           // this mtx pos is already occupied, check the next one
           nextIndex++;
         }
-      } else {
+      }
+      else
+      {
         // next signal is too far from reference one, this MtxSig is finished
         break;
       }
     }
-    mtxSig.setTime(calculateAverageTime(mtxSig)-offset);
+    mtxSig.setTime(calculateAverageTime(mtxSig) - offset);
     rawSigVec.erase(rawSigVec.begin());
     mtxSigVec.push_back(mtxSig);
   }
@@ -186,10 +209,11 @@ double SignalTransformerTools::calculateAverageTime(JPetMatrixSignal& mtxSig)
 {
   double averageTime = 0.0;
   auto rawSignals = mtxSig.getRawSignals();
-  for(auto rawSig : rawSignals){
+  for (auto rawSig : rawSignals)
+  {
     averageTime += getRawSigBaseTime(rawSig.second);
   }
-  averageTime = averageTime/((double) rawSignals.size());
+  averageTime = averageTime / ((double)rawSignals.size());
   return averageTime;
 }
 
@@ -198,9 +222,6 @@ double SignalTransformerTools::calculateAverageTime(JPetMatrixSignal& mtxSig)
  */
 void SignalTransformerTools::sortByTime(vector<JPetRawSignal>& input)
 {
-  std::sort(
-    input.begin(), input.end(), [] (JPetRawSignal rawSig1, JPetRawSignal rawSig2) {
-      return getRawSigBaseTime(rawSig1) < getRawSigBaseTime(rawSig2);
-    }
-  );
+  std::sort(input.begin(), input.end(),
+            [](JPetRawSignal rawSig1, JPetRawSignal rawSig2) { return getRawSigBaseTime(rawSig1) < getRawSigBaseTime(rawSig2); });
 }

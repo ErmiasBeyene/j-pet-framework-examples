@@ -16,11 +16,11 @@
 #ifndef HITFINDER_H
 #define HITFINDER_H
 
+#include <JPetHit/JPetHit.h>
 #include <JPetMatrixSignal/JPetMatrixSignal.h>
 #include <JPetUserTask/JPetUserTask.h>
-#include <JPetHit/JPetHit.h>
-#include <vector>
 #include <map>
+#include <vector>
 
 class JPetWriter;
 
@@ -35,7 +35,8 @@ class JPetWriter;
  * of Signals, time window for hit matching can be specified in user options,
  * default one is provided. Matching method is contained in tools class.
  */
-class HitFinder: public JPetUserTask {
+class HitFinder : public JPetUserTask
+{
 
 public:
   HitFinder(const char* name);
@@ -53,7 +54,7 @@ protected:
   const std::string kMinScinIDParamKey = "Histo_MinScinID_int";
   const std::string kMaxScinIDParamKey = "Histo_MaxScinID_int";
   bool fSaveControlHistos = true;
-  double fMinABTimeDiff = 10000.0;
+  double fMinABTimeDiff = 0.0;
   double fMaxABTimeDiff = 20000.0;
 };
 

@@ -1,0 +1,19 @@
+{
+ "Number_of_files_int":"7",
+ "File_1_std::string":"",
+ "Length_1_float":"46",
+ "File_2_std::string":"",
+ "Length_2_float":"47",
+ "File_3_std::string":"",
+ "Length_3_float":"48",
+ "File_4_std::string":"",
+ "Length_4_float":"49",
+ "File_5_std::string":"",
+ "Length_5_float":"50",
+ "File_6_std::string":"",
+ "Length_6_float":"51",
+ "File_7_std::string":"",
+ "Length_7_float":"52",
+ "Reference_file_ID_int":"5",
+ "Output_root_file_std::string":"EffectiveLengths.root"
+}

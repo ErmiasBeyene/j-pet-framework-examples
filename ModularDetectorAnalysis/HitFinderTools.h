@@ -16,12 +16,12 @@
 #ifndef HITFINDERTOOLS_H
 #define HITFINDERTOOLS_H
 
+#include <JPetHit/JPetHit.h>
 #include <JPetMatrixSignal/JPetMatrixSignal.h>
 #include <JPetStatistics/JPetStatistics.h>
 #include <JPetTimeWindow/JPetTimeWindow.h>
-#include <JPetHit/JPetHit.h>
-#include <vector>
 #include <string>
+#include <vector>
 
 /**
  * @brief Tools set fot HitFinder module
@@ -35,34 +35,30 @@ class HitFinderTools
 public:
   static void sortByTime(std::vector<JPetMatrixSignal>& signals);
 
-  static std::map<std::string, std::map<int, std::vector<JPetMatrixSignal>>>
-  getMappedSignals(const JPetTimeWindow* timeWindow);
+  static std::map<std::string, std::map<int, std::vector<JPetMatrixSignal>>> getMappedSignals(const JPetTimeWindow* timeWindow);
 
-  static std::vector<JPetHit> matchAllSignals(
-    std::map<std::string, std::map<int, std::vector<JPetMatrixSignal>>>& signalSidesMap,
-    double minTimeDiffAB, double maxTimeDiffAB, JPetStatistics& stats, bool saveHistos
-  );
+  static std::vector<JPetHit> matchAllSignals(std::map<std::string, std::map<int, std::vector<JPetMatrixSignal>>>& signalSidesMap,
+                                              double minTimeDiffAB, double maxTimeDiffAB, JPetStatistics& stats, bool saveHistos);
 
-  static std::vector<JPetHit> matchSignals(
-    std::vector<JPetMatrixSignal>& scinSignals, std::vector<JPetMatrixSignal>& wlsSignals,
-    double minTimeDiffAB, double maxTimeDiffAB, JPetStatistics& stats, bool saveHistos
-  );
+  static std::vector<JPetHit> matchSignals(std::vector<JPetMatrixSignal>& scinSignals, double minTimeDiffAB, double maxTimeDiffAB,
+                                           JPetStatistics& stats, bool saveHistos);
 
-  static JPetHit createHit(
-    const JPetMatrixSignal& signal1, const JPetMatrixSignal& signal2
-  );
+  static JPetHit createScinHit(const JPetMatrixSignal& signal1, const JPetMatrixSignal& signal2);
 
-  static JPetHit createHit(
-    const JPetMatrixSignal& signal1, const JPetMatrixSignal& signal2, const JPetMatrixSignal& signalWLS
-  );
+  static JPetHit createWLSHit(const JPetMatrixSignal& signalWLS);
 
-  static int matchWLSSignal(
-    std::vector<JPetMatrixSignal>& wlsSignals, double hitTime,
-    double minTimeDiffAB, double maxTimeDiffAB, JPetStatistics& stats, bool saveHistos
-  );
+  static JPetHit createHit(const JPetMatrixSignal& signal1, const JPetMatrixSignal& signal2, const JPetMatrixSignal& signalWLS);
 
   static JPetHit createDummyHit(const JPetMatrixSignal& signal);
   static double calculateTOT(JPetHit& hit);
+
+  /// old
+  // static std::vector<JPetHit> matchSignals(
+  //   std::vector<JPetMatrixSignal>& scinSignals, std::vector<JPetMatrixSignal>& wlsSignals,
+  //   double minTimeDiffAB, double maxTimeDiffAB, JPetStatistics& stats, bool saveHistos
+  // );
+  // static int matchWLSSignal(std::vector<JPetMatrixSignal>& wlsSignals, double hitTime, double minTimeDiffAB, double maxTimeDiffAB,
+  //                           JPetStatistics& stats, bool saveHistos);
 };
 
 #endif /* !HITFINDERTOOLS_H */
