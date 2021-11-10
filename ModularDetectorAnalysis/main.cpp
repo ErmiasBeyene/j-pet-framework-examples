@@ -13,15 +13,17 @@
  *  @file main.cpp
  */
 
-#include <JPetManager/JPetManager.h>
-#include "TimeWindowCreator.h"
-#include "SignalTransformer.h"
-#include "SignalFinder.h"
 #include "HitFinder.h"
+#include "SignalFinder.h"
+#include "SignalTransformer.h"
+#include "TimeWindowCreator.h"
+#include <JPetManager/JPetManager.h>
 using namespace std;
 
-int main(int argc, const char* argv[]) {
-  try {
+int main(int argc, const char* argv[])
+{
+  try
+  {
     JPetManager& manager = JPetManager::getManager();
 
     manager.registerTask<TimeWindowCreator>("TimeWindowCreator");
@@ -35,9 +37,10 @@ int main(int argc, const char* argv[]) {
     manager.useTask("HitFinder", "mtx.sig", "hits");
 
     manager.run(argc, argv);
-  } catch (const std::exception& except) {
-    std::cerr << "Unrecoverable error occured:" << except.what()
-    << "Exiting the program!" << std::endl;
+  }
+  catch (const std::exception& except)
+  {
+    std::cerr << "Unrecoverable error occured:" << except.what() << "Exiting the program!" << std::endl;
     return EXIT_FAILURE;
   }
   return EXIT_SUCCESS;

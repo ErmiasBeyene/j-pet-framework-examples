@@ -104,12 +104,29 @@ void HitFinder::saveHits(const std::vector<JPetHit>& hits)
   for (auto& hit : sortedHits)
   {
     fOutputEvents->add<JPetHit>(hit);
-    // if (fSaveControlHistos)
-    // {
+    if (fSaveControlHistos)
+    {
+      if (!hit.getScin().isNullObject())
+      {
+
+        auto minScin = min(hit.getSignalA().getMatrix().getScin().getID(), hit.getSignalB().getMatrix().getScin().getID());
+        auto maxScin = max(hit.getSignalA().getMatrix().getScin().getID(), hit.getSignalB().getMatrix().getScin().getID());
+
+        auto minMtx = min(hit.getSignalA().getMatrix().getID(), hit.getSignalB().getMatrix().getID());
+        auto maxMtx = max(hit.getSignalA().getMatrix().getID(), hit.getSignalB().getMatrix().getID());
+
+        getStatistics().getHisto2D("hit_scin_scin_id_1")->Fill(minScin, maxScin);
+        getStatistics().getHisto2D("hit_scin_scin_id_2")->Fill(minScin, maxScin);
+        getStatistics().getHisto2D("hit_scin_scin_id_3")->Fill(minScin, maxScin);
+
+        getStatistics().getHisto2D("hit_mtx_mtx_id_1")->Fill(minMtx, maxMtx);
+        getStatistics().getHisto2D("hit_mtx_mtx_id_2")->Fill(minMtx, maxMtx);
+        getStatistics().getHisto2D("hit_mtx_mtx_id_3")->Fill(minMtx, maxMtx);
+      }
+    }
     //   auto multi = ((int)hit.getQualityOfEnergy());
     //
     //   getStatistics().getHisto2D("time_diff_per_scin")->Fill(hit.getTimeDiff(), hit.getScin().getID());
-    //   getStatistics().getHisto2D("hit_pos_XY")->Fill(hit.getPosY(), hit.getPosX());
     //   getStatistics().getHisto1D("hit_sig_multi")->Fill(multi);
     //   if (hit.getPosZ() != -99.0)
     //   {
@@ -130,13 +147,49 @@ void HitFinder::saveHits(const std::vector<JPetHit>& hits)
 
 void HitFinder::initialiseHistograms()
 {
-
   getStatistics().createHistogram(new TH1F("hits_tslot", "Number of Hits in Time Window", 30, 0.5, 31.5));
   getStatistics().getHisto1D("hits_tslot")->GetXaxis()->SetTitle("Hits in Time Slot");
   getStatistics().getHisto1D("hits_tslot")->GetYaxis()->SetTitle("Number of Time Slots");
 
   auto minScinID = getParamBank().getScins().begin()->first;
   auto maxScinID = getParamBank().getScins().rbegin()->first;
+
+  auto minMtxID = getParamBank().getMatrices().begin()->first;
+  auto maxMtxID = getParamBank().getMatrices().rbegin()->first;
+
+  // Checking signal building
+  getStatistics().createHistogram(new TH2F("hit_scin_scin_id_1", "Scins ID of AB Signals in Hits", 13, 0.5, 13.5, 13, 0.5, 13.5));
+  getStatistics().getHisto2D("hit_scin_scin_id_1")->GetXaxis()->SetTitle("Scintillator ID");
+  getStatistics().getHisto2D("hit_scin_scin_id_1")->GetYaxis()->SetTitle("Scintillator ID");
+
+  getStatistics().createHistogram(new TH2F("hit_scin_scin_id_2", "Scins ID of AB Signals in Hits", 13, 13.5, 26.5, 13, 13.5, 26.5));
+  getStatistics().getHisto2D("hit_scin_scin_id_2")->GetXaxis()->SetTitle("Scintillator ID");
+  getStatistics().getHisto2D("hit_scin_scin_id_2")->GetYaxis()->SetTitle("Scintillator ID");
+
+  getStatistics().createHistogram(new TH2F("hit_scin_scin_id_3", "Scins ID of AB Signals in Hits", 13, 26.5, 39.5, 13, 26.5, 39.5));
+  getStatistics().getHisto2D("hit_scin_scin_id_3")->GetXaxis()->SetTitle("Scintillator ID");
+  getStatistics().getHisto2D("hit_scin_scin_id_3")->GetYaxis()->SetTitle("Scintillator ID");
+
+  getStatistics().createHistogram(new TH2F("hit_mtx_mtx_id_1", "Matrix ID of AB Signals in Hits", 26, 0.5, 26.5, 26, 0.5, 26.5));
+  getStatistics().getHisto2D("hit_mtx_mtx_id_1")->GetXaxis()->SetTitle("Matrix ID");
+  getStatistics().getHisto2D("hit_mtx_mtx_id_1")->GetYaxis()->SetTitle("Matrix ID");
+
+  getStatistics().createHistogram(new TH2F("hit_mtx_mtx_id_2", "Matrix ID of AB Signals in Hits", 26, 26.5, 52.5, 26, 26.5, 52.5));
+  getStatistics().getHisto2D("hit_mtx_mtx_id_2")->GetXaxis()->SetTitle("Matrix ID");
+  getStatistics().getHisto2D("hit_mtx_mtx_id_2")->GetYaxis()->SetTitle("Matrix ID");
+
+  getStatistics().createHistogram(new TH2F("hit_mtx_mtx_id_3", "Matrix ID of AB Signals in Hits", 26, 52.5, 78.5, 26, 52.5, 78.5));
+  getStatistics().getHisto2D("hit_mtx_mtx_id_3")->GetXaxis()->SetTitle("Matrix ID");
+  getStatistics().getHisto2D("hit_mtx_mtx_id_3")->GetYaxis()->SetTitle("Matrix ID");
+
+  getStatistics().createHistogram(new TH1F("hit_tdiff", "A-B Signals Time Difference", 200, -1.1 * fMaxABTimeDiff, 1.1 * fMaxABTimeDiff));
+  getStatistics().getHisto1D("hit_tdiff")->GetXaxis()->SetTitle("A-B time difference [ps]");
+  getStatistics().getHisto1D("hit_tdiff")->GetYaxis()->SetTitle("Number of Hits");
+
+  getStatistics().createHistogram(
+      new TH1F("hit_per_scin", "Number of Hits in Scintillator", maxScinID - minScinID + 1, minScinID - 0.5, maxScinID + 0.5));
+  getStatistics().getHisto1D("hit_per_scin")->GetXaxis()->SetTitle("Scintillator ID");
+  getStatistics().getHisto1D("hit_per_scin")->GetYaxis()->SetTitle("Number of Hits");
 
   getStatistics().createHistogram(new TH2F("time_diff_per_scin", "Signals Time Difference per Scintillator ID", 200, -1.1 * fMaxABTimeDiff,
                                            1.1 * fMaxABTimeDiff, maxScinID - minScinID + 1, minScinID - 0.5, maxScinID + 0.5));
