@@ -144,41 +144,41 @@ vector<JPetHit> HitFinderTools::matchSignals(vector<JPetMatrixSignal>& scinSigna
     {
       if (minTimeDiffAB < scinSignals.at(j).getTime() - mtxSig.getTime() && scinSignals.at(j).getTime() - mtxSig.getTime() < maxTimeDiffAB)
       {
-        // if (mtxSig.getMatrix().getType() != scinSignals.at(j).getMatrix().getType())
-        // if ((mtxSig.getMatrix().getType() == "SideA" && scinSignals.at(j).getMatrix().getType() == "SideB") ||
-        //     (mtxSig.getMatrix().getType() == "SideB" && scinSignals.at(j).getMatrix().getType() == "SideA"))
-        // {
-        auto hit = createScinHit(mtxSig, scinSignals.at(j));
+        if (mtxSig.getMatrix().getType() != scinSignals.at(j).getMatrix().getType())
+          if ((mtxSig.getMatrix().getType() == "SideA" && scinSignals.at(j).getMatrix().getType() == "SideB") ||
+              (mtxSig.getMatrix().getType() == "SideB" && scinSignals.at(j).getMatrix().getType() == "SideA"))
+          {
+            auto hit = createScinHit(mtxSig, scinSignals.at(j));
 
-        if (saveHistos)
-        {
-          stats.getHisto2D("hit_pos_XY")->Fill(hit.getPosX(), hit.getPosY());
-          stats.getHisto1D("hit_pos_z")->Fill(hit.getPosZ());
-          stats.getHisto1D("hit_tdiff")->Fill(hit.getTimeDiff());
-          stats.getHisto2D("time_diff_per_scin")->Fill(hit.getTimeDiff(), hit.getScin().getID());
-          stats.getHisto1D("hit_per_scin")->Fill(mtxSig.getMatrix().getScin().getID());
-          stats.getHisto1D("hit_per_scin")->Fill(scinSignals.at(j).getMatrix().getScin().getID());
-          stats.getHisto1D("hit_sig_multi")->Fill(hit.getQualityOfEnergy());
-        }
+            if (saveHistos)
+            {
+              stats.getHisto2D("hit_pos_XY")->Fill(hit.getPosX(), hit.getPosY());
+              stats.getHisto1D("hit_pos_z")->Fill(hit.getPosZ());
+              stats.getHisto1D("hit_tdiff")->Fill(hit.getTimeDiff());
+              stats.getHisto2D("time_diff_per_scin")->Fill(hit.getTimeDiff(), hit.getScin().getID());
+              stats.getHisto1D("hit_per_scin")->Fill(mtxSig.getMatrix().getScin().getID());
+              stats.getHisto1D("hit_per_scin")->Fill(scinSignals.at(j).getMatrix().getScin().getID());
+              stats.getHisto1D("hit_sig_multi")->Fill(hit.getQualityOfEnergy());
+            }
 
-        scinHits.push_back(hit);
-        scinSignals.erase(scinSignals.begin() + j);
-        scinSignals.erase(scinSignals.begin() + 0);
-        break;
-        // }
-        // else
-        // {
-        //   if (j == scinSignals.size() - 1)
-        //   {
-        //     remainSignals.push_back(mtxSig);
-        //     scinSignals.erase(scinSignals.begin() + 0);
-        //     break;
-        //   }
-        //   else
-        //   {
-        //     continue;
-        //   }
-        // }
+            scinHits.push_back(hit);
+            scinSignals.erase(scinSignals.begin() + j);
+            scinSignals.erase(scinSignals.begin() + 0);
+            break;
+          }
+          else
+          {
+            if (j == scinSignals.size() - 1)
+            {
+              remainSignals.push_back(mtxSig);
+              scinSignals.erase(scinSignals.begin() + 0);
+              break;
+            }
+            else
+            {
+              continue;
+            }
+          }
       }
       else
       {
