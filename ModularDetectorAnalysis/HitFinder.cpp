@@ -232,6 +232,18 @@ void HitFinder::initialiseHistograms()
   getStatistics().getHisto1D("remain_signals_tdiff")->GetXaxis()->SetTitle("Time difference [ps]");
   getStatistics().getHisto1D("remain_signals_tdiff")->GetYaxis()->SetTitle("Number of Signals");
 
+  for (int mtxID_i = minMtxID; mtxID_i <= maxMtxID; ++mtxID_i)
+  {
+    for (int mtxID_j = mtxID_i; mtxID_j <= maxMtxID; ++mtxID_j)
+    {
+      getStatistics().createHistogram(new TH1F(Form("mtx_%d_%d_time_diff", mtxID_i, mtxID_j),
+                                               Form("Time difference of signals in matrices IDs %d and %d", mtxID_i, mtxID_j), 100, -20000.0,
+                                               20000.0));
+      getStatistics().getHisto1D(Form("mtx_%d_%d_time_diff", mtxID_i, mtxID_j))->GetXaxis()->SetTitle("time difference [ps]");
+      getStatistics().getHisto1D(Form("mtx_%d_%d_time_diff", mtxID_i, mtxID_j))->GetYaxis()->SetTitle("Number of Hits");
+    }
+  }
+
   // Time diff and TOT per scin per multi
   // for (int scinID = minScinID; scinID <= maxScinID; scinID++)
   // {

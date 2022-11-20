@@ -150,6 +150,10 @@ vector<JPetHit> HitFinderTools::matchSignals(vector<JPetMatrixSignal>& scinSigna
           {
             auto hit = createScinHit(mtxSig, scinSignals.at(j));
 
+            auto id1 = min(mtxSig.getMatrix().getID(), scinSignals.at(j).getMatrix().getID());
+            auto id2 = max(mtxSig.getMatrix().getID(), scinSignals.at(j).getMatrix().getID());
+            stats.getHisto1D(Form("mtx_%d_%d_time_diff", id1, id2)->Fill(scinSignals.at(j).getTime() - mtxSig.getTime());
+
             if (saveHistos)
             {
               stats.getHisto2D("hit_pos_XY")->Fill(hit.getPosX(), hit.getPosY());
