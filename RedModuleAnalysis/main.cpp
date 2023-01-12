@@ -33,18 +33,16 @@ int main(int argc, const char* argv[])
     manager.registerTask<TimeWindowCreator>("TimeWindowCreator");
     manager.registerTask<SignalFinder>("SignalFinder");
     manager.registerTask<RedModuleSignalTransformer>("RedModuleSignalTransformer");
-    manager.registerTask<RedModuleHitFinder>("RedModuleHitFinder");
-    manager.registerTask<EventFinder>("EventFinder");
-    // manager.registerTask<EventCategorizer>("EventCategorizer");
-    manager.registerTask<RedModuleEventCategorizer>("RedModuleEventCategorizer");
+    // manager.registerTask<RedModuleHitFinder>("RedModuleHitFinder");
+    // manager.registerTask<EventFinder>("EventFinder");
+    // manager.registerTask<RedModuleEventCategorizer>("RedModuleEventCategorizer");
 
     manager.useTask("TimeWindowCreator", "hld", "tslot");
     manager.useTask("SignalFinder", "tslot", "sipm.sig");
-    manager.useTask("RedModuleSignalTransformer", "sipm.sig", "mtx.sig");
-    manager.useTask("RedModuleHitFinder", "mtx.sig", "hits");
-    manager.useTask("EventFinder", "hits", "unk.evt");
-    // manager.useTask("EventCategorizer", "unk.evt", "cat.evt");
-    manager.useTask("RedModuleEventCategorizer", "unk.evt", "cat.evt");
+    manager.useTask("RedModuleSignalTransformer", "sipm.calib", "mtx.sig");
+    // manager.useTask("RedModuleHitFinder", "mtx.sig", "hits");
+    // manager.useTask("EventFinder", "hits", "unk.evt");
+    // manager.useTask("RedModuleEventCategorizer", "unk.evt", "cat.evt");
 
     manager.run(argc, argv);
   }

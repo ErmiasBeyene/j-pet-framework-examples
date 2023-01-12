@@ -24,6 +24,7 @@
 
 #include "../ModularDetectorAnalysis/SignalTransformerTools.h"
 #include <JPetParamBank/JPetParamBank.h>
+#include <JPetStatistics/JPetStatistics.h>
 #include <JPetTimeWindow/JPetTimeWindow.h>
 #include <Signals/JPetMatrixSignal/JPetMatrixSignal.h>
 #include <Signals/JPetPMSignal/JPetPMSignal.h>
@@ -35,6 +36,8 @@ class RedModuleSignalTransformerTools
 {
 public:
   static const std::map<JPetMatrix::Side, std::map<int, std::vector<JPetPMSignal>>> getPMSigMtxMap(const JPetTimeWindow* timeWindow);
+
+  static const void plotWLSSignalsTimeDiffs(std::map<int, std::vector<JPetPMSignal>> pmSigMap, JPetStatistics& stats, int minSiPMID, int maxSiPM);
 
   static std::vector<JPetMatrixSignal> mergeSignalsAllSiPMs(std::map<JPetMatrix::Side, std::map<int, std::vector<JPetPMSignal>>>& pmSigMtxMap,
                                                             double mergingTime, boost::property_tree::ptree& calibTree,

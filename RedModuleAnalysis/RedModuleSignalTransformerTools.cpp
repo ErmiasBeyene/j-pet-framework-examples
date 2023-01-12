@@ -85,6 +85,24 @@ const map<JPetMatrix::Side, map<int, vector<JPetPMSignal>>> RedModuleSignalTrans
   return mappedSignals;
 }
 
+const void RedModuleSignalTransformerTools::plotWLSSignalsTimeDiffs(map<int, vector<JPetPMSignal>> pmSigMap, JPetStatistics& stats, int minSiPMID,
+                                                                    int maxSiPM)
+{
+  for (int sipmID = minSiPMID + 1; sipmID <= maxSiPM; ++sipmID)
+  {
+    if (pmSigMap.find(sipmID - 1) != pmSigMap.end() && pmSigMap.find(sipmID) != pmSigMap.end())
+    {
+      for (auto prevSig : pmSigMap.at(sipmID - 1))
+      {
+        for (auto nextSig : pmSigMap.at(sipmID))
+        {
+          stats.fillHistogram("wls_sipm_calib", sipmID, nextSig.getTime() - prevSig.getTime());
+        }
+      }
+    }
+  }
+}
+
 /**
  * Method iterates over all matrices in the detector with signals,
  * calling merging procedure for each

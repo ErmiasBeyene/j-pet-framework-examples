@@ -88,6 +88,11 @@ bool RedModuleSignalTransformer::exec()
     // Distribute PM Signals per Matrices
     auto pmSigMtxMap = RedModuleSignalTransformerTools::getPMSigMtxMap(timeWindow);
 
+    if (fSaveCalibHistos)
+    {
+      RedModuleSignalTransformerTools::plotWLSSignalsTimeDiffs(pmSigMtxMap[JPetMatrix::WLS], getStatistics(), 401, 464);
+    }
+
     // Merging max. 4 PM Signals into a MatrixSignal and separately signals on WLS SiPMs
     auto mergedSignals =
         RedModuleSignalTransformerTools::mergeSignalsAllSiPMs(pmSigMtxMap, fMergingTime, fConstansTree, fWLSConfigTree, getParamBank());
@@ -186,34 +191,30 @@ void RedModuleSignalTransformer::saveMatrixSignals(const std::vector<JPetMatrixS
       }
       else if (mtxSig.getMatrix().getScin().getSlot().getType() == JPetSlot::WLS)
       {
-        auto mtxID = mtxSig.getMatrix().getID();
-        int refID = 999;
+        int prevSiPMID = 999;
+        double t_prev_1 = -9999.0;
 
-        for (auto& item : fWLSConfigTree.get_child("wls_matrix." + std::to_string(mtxID) + ".matrix_sipm_ids"))
+        for (auto pmSig : sigMap)
         {
-          auto siPMID = item.second.get_value<int>(-1);
-          if (siPMID != -1)
+          if (prevSiPMID == 999)
           {
-            refID = std::min(refID, siPMID);
+            prevSiPMID = pmSig.second.getPM().getID();
+            t_prev_1 = pmSig.second.getLeadTrailPairs().at(0).first.getTime();
+            if (pmSig.second.getLeadTrailPairs().size() > 1)
+            {
+              auto t_prev_2 = pmSig.second.getLeadTrailPairs().at(1).first.getTime();
+              auto channelID = pmSig.second.getLeadTrailPairs().at(1).first.getChannel().getID();
+              getStatistics().fillHistogram("mtx_channel_offsets", channelID, t_prev_2 - t_prev_1);
+            }
           }
-        }
-
-        if (sigMap.find(refID) != sigMap.end())
-        {
-          auto t_1_1 = sigMap.at(refID).getLeadTrailPairs().at(0).first.getTime();
-
-          for (auto pmSig : sigMap)
+          else
           {
             auto pairs = pmSig.second.getLeadTrailPairs();
             for (auto pair : pairs)
             {
               auto t_ch_i = pair.first.getTime();
               auto channelID = pair.first.getChannel().getID();
-              if (t_1_1 == t_ch_i)
-              {
-                continue;
-              }
-              getStatistics().fillHistogram("mtx_channel_offsets", channelID, t_ch_i - t_1_1);
+              getStatistics().fillHistogram("mtx_channel_offsets", channelID, t_ch_i - t_prev_1);
             }
           }
         }
@@ -270,7 +271,7 @@ void RedModuleSignalTransformer::initialiseHistograms()
       new TH2D("mtxsig_wls_multi", "WLS Matrix Signal Multiplicity", maxScinID - minScinID + 1, minScinID - 0.5, maxScinID + 0.5, 3, 0.5, 3.5),
       "Scin ID", "Number of PM signals merged into WLS signal");
 
-  // SiPM offsets if needed
+  // SiPM calibrations
   if (fSaveCalibHistos)
   {
     auto minChannelID = getParamBank().getChannels().begin()->first;
@@ -280,5 +281,12 @@ void RedModuleSignalTransformer::initialiseHistograms()
                                                      maxChannelID - minChannelID + 1, minChannelID - 0.5, maxChannelID + 0.5, 200, -fMergingTime,
                                                      fMergingTime),
                                             "Channel ID", "Offset");
+
+    auto minSiPMID = 401;
+    auto maxSiPMID = 464;
+
+    getStatistics().createHistogramWithAxes(new TH2D("wls_sipm_calib", "Time differences between consecutive SiPM signals in WLS layer",
+                                                     maxSiPMID - minSiPMID + 1, minSiPMID - 0.5, maxSiPMID + 0.5, 200, -fMergingTime, fMergingTime),
+                                            "SiPM ID", "Signal time difference");
   }
 }
