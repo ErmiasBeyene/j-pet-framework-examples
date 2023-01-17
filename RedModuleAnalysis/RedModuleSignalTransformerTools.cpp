@@ -1,5 +1,5 @@
 /**
- *  @copyright Copyright 2022 The J-PET Framework Authors. All rights reserved.
+ *  @copyright Copyright 2023 The J-PET Framework Authors. All rights reserved.
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may find a copy of the License in the LICENCE file.
@@ -83,6 +83,26 @@ const map<JPetMatrix::Side, map<int, vector<JPetPMSignal>>> RedModuleSignalTrans
     }
   }
   return mappedSignals;
+}
+
+const map<int, vector<JPetPMSignal>> RedModuleSignalTransformerTools::calibrateWLSSignalsTimeDiffs(map<int, vector<JPetPMSignal>> inputMap,
+                                                                                                   boost::property_tree::ptree& calibTree)
+{
+  map<int, vector<JPetPMSignal>> calibratedSignals;
+  for (auto sipmSigs : inputMap)
+  {
+    vector<JPetPMSignal> temp;
+    auto siPMID = sipmSigs.first;
+    for (auto signal : sipmSigs.second)
+    {
+      JPetPMSignal newSignal(signal);
+      double sipmOffset = calibTree.get("sipm." + to_string(siPMID) + ".wls_time_offset", 0.0);
+      newSignal.setTime(signal.getTime() - sipmOffset);
+      temp.push_back(newSignal);
+    }
+    calibratedSignals[siPMID] = temp;
+  }
+  return calibratedSignals;
 }
 
 const void RedModuleSignalTransformerTools::plotWLSSignalsTimeDiffs(map<int, vector<JPetPMSignal>> pmSigMap, JPetStatistics& stats, int minSiPMID,

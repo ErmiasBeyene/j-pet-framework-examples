@@ -1,5 +1,5 @@
 /**
- *  @copyright Copyright 2022 The J-PET Framework Authors. All rights reserved.
+ *  @copyright Copyright 2023 The J-PET Framework Authors. All rights reserved.
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may find a copy of the License in the LICENCE file.
@@ -36,6 +36,9 @@ class RedModuleSignalTransformerTools
 {
 public:
   static const std::map<JPetMatrix::Side, std::map<int, std::vector<JPetPMSignal>>> getPMSigMtxMap(const JPetTimeWindow* timeWindow);
+
+  static const std::map<int, std::vector<JPetPMSignal>> calibrateWLSSignalsTimeDiffs(std::map<int, std::vector<JPetPMSignal>> inputMap,
+                                                                                     boost::property_tree::ptree& calibTree);
 
   static const void plotWLSSignalsTimeDiffs(std::map<int, std::vector<JPetPMSignal>> pmSigMap, JPetStatistics& stats, int minSiPMID, int maxSiPM);
 

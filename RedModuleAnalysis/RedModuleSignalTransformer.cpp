@@ -1,5 +1,5 @@
 /**
- *  @copyright Copyright 2022 The J-PET Framework Authors. All rights reserved.
+ *  @copyright Copyright 2023 The J-PET Framework Authors. All rights reserved.
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may find a copy of the License in the LICENCE file.
@@ -17,6 +17,7 @@
 #include "RedModuleSignalTransformerTools.h"
 #include <boost/property_tree/json_parser.hpp>
 
+using namespace std;
 using namespace jpet_options_tools;
 
 RedModuleSignalTransformer::RedModuleSignalTransformer(const char* name) : JPetUserTask(name) {}
@@ -88,14 +89,20 @@ bool RedModuleSignalTransformer::exec()
     // Distribute PM Signals per Matrices
     auto pmSigMtxMap = RedModuleSignalTransformerTools::getPMSigMtxMap(timeWindow);
 
+    auto wlsSignals = RedModuleSignalTransformerTools::calibrateWLSSignalsTimeDiffs(pmSigMtxMap[JPetMatrix::WLS], fConstansTree);
     if (fSaveCalibHistos)
     {
-      RedModuleSignalTransformerTools::plotWLSSignalsTimeDiffs(pmSigMtxMap[JPetMatrix::WLS], getStatistics(), 401, 464);
+      RedModuleSignalTransformerTools::plotWLSSignalsTimeDiffs(wlsSignals, getStatistics(), 401, 464);
     }
+
+    map<JPetMatrix::Side, map<int, vector<JPetPMSignal>>> newpmSigMtxMap;
+    newpmSigMtxMap[JPetMatrix::WLS] = wlsSignals;
+    newpmSigMtxMap[JPetMatrix::SideA] = pmSigMtxMap[JPetMatrix::SideA];
+    newpmSigMtxMap[JPetMatrix::SideB] = pmSigMtxMap[JPetMatrix::SideB];
 
     // Merging max. 4 PM Signals into a MatrixSignal and separately signals on WLS SiPMs
     auto mergedSignals =
-        RedModuleSignalTransformerTools::mergeSignalsAllSiPMs(pmSigMtxMap, fMergingTime, fConstansTree, fWLSConfigTree, getParamBank());
+        RedModuleSignalTransformerTools::mergeSignalsAllSiPMs(newpmSigMtxMap, fMergingTime, fConstansTree, fWLSConfigTree, getParamBank());
 
     // Saving method invocation
     if (mergedSignals.size() > 0)
