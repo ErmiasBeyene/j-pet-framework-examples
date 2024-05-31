@@ -303,7 +303,7 @@ bool EventCategorizer::exec()
                                                             fToTCutAnniMax, fSourcePos, fTestType, fScatterTOFTimeDiff, fScatterTimeMin,
                                                             fScatterTimeMax, fScatterAngleMin, fScatterAngleMax, fConstansTree);
 
-      // bool is3Gamma = EventCategorizerTools::checkFor3Gamma(event, getStatistics(), fSaveControlHistos);
+     // bool is3Gamma = EventCategorizerTools::checkFor3Gamma(event, getStatistics(), fSaveControlHistos);
 
       // bool isLifetime2Gamma = EventCategorizerTools::checkFor3GammaLifetime(
       //     event, getStatistics(), fSaveControlHistos, f2gThetaDiff, f2gTimeDiff, fToTCutAnniMin, fToTCutAnniMax, fToTCutDeexMin, fToTCutDeexMax,
